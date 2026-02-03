@@ -1,110 +1,165 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZeroDays •  Media Player</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:Segoe UI,Arial,sans-serif;color:#d6d6d6;overflow-x:hidden;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroDays • Media Player</title>
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            color: #d6d6d6;
+            background: #0a0a0a;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
 
-/* BACKGROUND VIDEO */
-.bg-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:-1;}
+        /* BACKGROUND VIDEO */
+        .bg-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; opacity: 0.4; }
+        .overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%); z-index: -1; }
 
-header{
-  padding:20px;text-align:center;background:rgba(255,255,255,0.0);
-  border-bottom:1px solid rgba(255,255,255,0.1);text-shadow:0 0 6px #000;
-}
-header h1{letter-spacing:3px;font-size:28px;}
-header span{color:gray;font-size:12px;text-shadow:0 0 6px #000;}
+        header {
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+        }
+        header h1 { letter-spacing: 4px; font-size: 2rem; text-transform: uppercase; }
+        header span { color: #888; font-size: 12px; display: block; margin-top: 5px; }
 
-.container{max-width:1100px;margin:30px auto;padding:20px;background:rgba(255,255,255,0.0);}
+        .container { max-width: 900px; margin: 20px auto; padding: 0 20px; padding-bottom: 100px; }
 
-.section{margin-bottom:30px}
-.section h2{
-  font-size:18px;margin-bottom:12px;border-left:4px solid gray;
-  padding-left:10px;color:#bfbfbf;text-shadow:0 0 6px #000;
-}
+        .section { margin-bottom: 40px; }
+        .section h2 {
+            font-size: 14px; text-transform: uppercase; letter-spacing: 2px;
+            margin-bottom: 15px; border-left: 3px solid #666;
+            padding-left: 10px; color: #aaa;
+        }
 
-input{width:100%;padding:12px;background:rgba(0,0,0,0.1);
-border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;
-margin-bottom:12px;font-size:14px;}
+        input[type="text"], input[type="url"] {
+            width: 100%; padding: 15px; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff;
+            margin-bottom: 12px; font-size: 14px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: #888; background: rgba(255,255,255,0.1); }
 
-button{padding:12px 22px;background:rgba(0,0,0,0.1);
-border:1px solid gray;color:gray;border-radius:6px;cursor:pointer;transition:.3s;margin-bottom:6px;}
-button:hover{background:gray;color:black;transform:scale(1.05);}
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        button {
+            padding: 12px 20px; background: rgba(255,255,255,0.05);
+            border: 1px solid #444; color: #aaa; border-radius: 8px;
+            cursor: pointer; transition: 0.3s; font-size: 13px; font-weight: bold;
+        }
+        button:hover { background: #eee; color: #000; transform: translateY(-2px); }
+        button.primary { border-color: #888; color: #fff; }
 
-.playlist{background:rgba(0,0,0,0.05);border:1px solid rgba(255,255,255,0.05);
-border-radius:6px;padding:12px;font-family:monospace;font-size:13px;
-max-height:300px;overflow:auto;color:gray;text-shadow:0 0 4px #000;}
+        #installBtn { display: none; margin: 10px auto; background: #222; border-color: #00ff88; color: #00ff88; }
 
-.player-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-.player-controls button{flex:1;}
-.volume-control{margin-top:6px;}
+        .playlist {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; padding: 10px; font-family: 'Courier New', monospace;
+            max-height: 250px; overflow-y: auto; margin-bottom: 20px;
+        }
+        .track-item {
+            padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .track-item:hover { background: rgba(255,255,255,0.1); }
+        .current-track { color: #00ff88; background: rgba(0,255,136,0.1); border-left: 3px solid #00ff88; }
 
-audio,video,iframe{width:100%;border-radius:6px;margin-bottom:12px;}
+        .player-wrapper {
+            background: rgba(0,0,0,0.6); padding: 20px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        audio, video { width: 100%; margin-bottom: 15px; border-radius: 6px; }
+        iframe { width: 100%; aspect-ratio: 16/9; border-radius: 8px; margin-bottom: 15px; background: #000; }
 
-.current-track{background:rgba(0,0,0,0.2);border-radius:4px;padding:2px 4px;margin-bottom:2px;}
+        .visualizer { width: 100%; height: 80px; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 15px; }
 
-.visualizer{width:100%;height:60px;background:rgba(0,0,0,0.1);border-radius:6px;margin-bottom:12px;}
-</style>
+        .controls-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px; margin-top: 15px;
+        }
+
+        .volume-box { margin-top: 20px; display: flex; align-items: center; gap: 15px; font-size: 12px; color: #888; }
+        input[type="range"] { flex: 1; accent-color: #888; }
+
+        footer { text-align: center; padding: 40px; color: #555; font-size: 11px; letter-spacing: 1px; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.4rem; }
+            .controls-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
 </head>
 <body>
 
 <video class="bg-video" autoplay muted loop playsinline>
-  <source src="ca63eccfcf11bcd02c1a900196de630f_720w.mp4" type="video/mp4">
+    <source src="ca63eccfcf11bcd02c1a900196de630f_720w.mp4" type="video/mp4">
 </video>
 <div class="overlay"></div>
 
 <header>
-  <h1>ZERO DAYS •  Media Player</h1>
-  <span>Play audio/video, Spotify, YouTube previews with playlist & visualizer</span>
+    <h1>ZERO DAYS</h1>
+    <span>Media Player & PWA</span>
+    <button id="installBtn">INSTALL APP</button>
 </header>
 
 <div class="container">
 
-  <div class="section">
-    <h2>Add Media URL (Drag & Drop Supported)</h2>
-    <input id="mediaUrl" placeholder="Enter audio/video/Spotify preview or YouTube URL">
-    <button onclick="addMedia()">Add to Playlist</button>
-  </div>
-
-  <div class="section">
-    <h2>Playlist</h2>
-    <div class="playlist" id="playlist"></div>
-  </div>
-
-  <div class="section">
-    <h2>Player</h2>
-    <audio id="audioPlayer" controls></audio>
-    <video id="videoPlayer" controls style="display:none;"></video>
-    <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-
-    <canvas id="visualizer" class="visualizer"></canvas>
-
-    <div class="player-controls">
-      <button onclick="prevTrack()">Prev</button>
-      <button onclick="playMedia()">Play</button>
-      <button onclick="pauseMedia()">Pause</button>
-      <button onclick="stopMedia()">Stop</button>
-      <button onclick="nextTrack()">Next</button>
-      <button onclick="shufflePlaylist()">Shuffle</button>
-      <button onclick="toggleRepeat()">Repeat</button>
-      <button onclick="removeMedia()">Remove</button>
+    <div class="section">
+        <h2>Add Media</h2>
+        <input id="mediaUrl" type="text" placeholder="Drop URL here or paste (YouTube, MP4, MP3, Spotify Previews)">
+        <div class="btn-group">
+            <button class="primary" onclick="addMedia()">Add to Playlist</button>
+            <button onclick="shufflePlaylist()">Shuffle</button>
+            <button onclick="clearPlaylist()">Clear All</button>
+        </div>
     </div>
-    <div class="volume-control">
-      Volume: <input type="range" min="0" max="1" step="0.01" value="1" onchange="setVolume(this.value)">
+
+    <div class="section">
+        <h2>Playlist</h2>
+        <div class="playlist" id="playlist"></div>
     </div>
-  </div>
+
+    <div class="section">
+        <h2>Now Playing</h2>
+        <div class="player-wrapper">
+            <audio id="audioPlayer" controls></audio>
+            <video id="videoPlayer" controls style="display:none;"></video>
+            <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+            <canvas id="visualizer" class="visualizer"></canvas>
+
+            <div class="controls-grid">
+                <button onclick="prevTrack()">PREV</button>
+                <button onclick="playMedia()">PLAY</button>
+                <button onclick="pauseMedia()">PAUSE</button>
+                <button onclick="nextTrack()">NEXT</button>
+                <button id="repeatBtn" onclick="toggleRepeat()">REPEAT: OFF</button>
+                <button onclick="removeMedia()">REMOVE</button>
+            </div>
+
+            <div class="volume-box">
+                VOL <input type="range" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
+            </div>
+        </div>
+    </div>
 
 </div>
 
 <footer>
-  Educational & ethical tool • No backend • No tracking
+    ZERODAYS PROJECT • NO BACKEND • PRIVACY FIRST
 </footer>
 
 <script>
+/* --- CORE PLAYER LOGIC --- */
 let playlist = [];
 let currentIndex = -1;
 let repeat = false;
@@ -115,168 +170,195 @@ const videoPlayer = document.getElementById("videoPlayer");
 const youtubePlayer = document.getElementById("youtubePlayer");
 const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
-
 let audioCtx, analyser, source;
 
-function addMedia(url){
-  let input = url || document.getElementById("mediaUrl").value.trim();
-  if(!input){alert("Enter a URL"); return;}
-  
-  // Spotify preview support
-  if(input.includes("spotify.com") && input.includes("preview")){
-    input = input.replace("open.spotify.com/track","p.scdn.co/mp3-preview");
-  }
+function addMedia(url) {
+    let input = url || document.getElementById("mediaUrl").value.trim();
+    if (!input) return;
 
-  playlist.push(input);
-  renderPlaylist();
-  document.getElementById("mediaUrl").value="";
-}
-
-function renderPlaylist(){
-  playlistDiv.innerHTML="";
-  playlist.forEach((url,i)=>{
-    const div=document.createElement("div");
-    div.textContent = `${i+1}. ${url}`;
-    div.className = (i===currentIndex)?"current-track":"";
-    div.style.cursor = "pointer";
-    div.onclick = ()=>playFromIndex(i);
-    playlistDiv.appendChild(div);
-  });
-}
-
-function playFromIndex(index){
-  if(index<0 || index>=playlist.length) return;
-  currentIndex = index;
-  const url = playlist[index];
-
-  // Stop others
-  audioPlayer.pause(); audioPlayer.src="";
-  videoPlayer.pause(); videoPlayer.src="";
-  youtubePlayer.style.display="none"; youtubePlayer.src="";
-
-  if(url.includes("youtube.com") || url.includes("youtu.be")){
-    youtubePlayer.style.display="block";
-    let videoId = url.split("v=")[1] || url.split("youtu.be/")[1];
-    if(videoId.includes("&")) videoId = videoId.split("&")[0];
-    youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1`;
-  }else if(url.endsWith(".mp4") || url.endsWith(".webm") || url.endsWith(".ogg")){
-    videoPlayer.style.display="block";
-    videoPlayer.src=url;
-    videoPlayer.play();
-  }else{
-    audioPlayer.style.display="block";
-    audioPlayer.src=url;
-    audioPlayer.play();
-    initVisualizer(audioPlayer);
-  }
-
-  renderPlaylist();
-}
-
-function playMedia(){
-  if(currentIndex===-1 && playlist.length>0){playFromIndex(0);}
-  else{
-    if(!audioPlayer.paused) audioPlayer.play();
-    if(!videoPlayer.paused) videoPlayer.play();
-  }
-}
-
-function pauseMedia(){
-  audioPlayer.pause();
-  videoPlayer.pause();
-  // YouTube pause not supported via iframe without API
-}
-
-function stopMedia(){
-  audioPlayer.pause(); audioPlayer.currentTime=0;
-  videoPlayer.pause(); videoPlayer.currentTime=0;
-  youtubePlayer.src="";
-}
-
-function nextTrack(){
-  if(playlist.length===0) return;
-  if(repeat){playFromIndex(currentIndex); return;}
-  let nextIndex = (currentIndex+1) % playlist.length;
-  playFromIndex(nextIndex);
-}
-
-function prevTrack(){
-  if(playlist.length===0) return;
-  let prevIndex = (currentIndex-1+playlist.length) % playlist.length;
-  playFromIndex(prevIndex);
-}
-
-function shufflePlaylist(){
-  for(let i=playlist.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [playlist[i],playlist[j]]=[playlist[j],playlist[i]];
-  }
-  renderPlaylist();
-}
-
-function toggleRepeat(){
-  repeat = !repeat;
-  alert("Repeat is now " + (repeat?"ON":"OFF"));
-}
-
-function removeMedia(){
-  if(currentIndex===-1){alert("No media selected"); return;}
-  playlist.splice(currentIndex,1);
-  currentIndex=-1;
-  stopMedia();
-  renderPlaylist();
-}
-
-function setVolume(value){
-  audioPlayer.volume = value;
-  videoPlayer.volume = value;
-}
-
-// DRAG & DROP SUPPORT
-document.addEventListener("dragover", e=>e.preventDefault());
-document.addEventListener("drop", e=>{
-  e.preventDefault();
-  if(e.dataTransfer.items){
-    for(let i=0;i<e.dataTransfer.items.length;i++){
-      if(e.dataTransfer.items[i].kind==="string"){
-        e.dataTransfer.items[i].getAsString(addMedia);
-      }
+    if (input.includes("spotify.com") && input.includes("preview")) {
+        input = input.replace("open.spotify.com/track", "p.scdn.co/mp3-preview");
     }
-  }
+
+    playlist.push(input);
+    renderPlaylist();
+    document.getElementById("mediaUrl").value = "";
+    savePlaylist();
+}
+
+function renderPlaylist() {
+    playlistDiv.innerHTML = "";
+    playlist.forEach((url, i) => {
+        const div = document.createElement("div");
+        div.className = "track-item " + (i === currentIndex ? "current-track" : "");
+        div.textContent = `${i + 1}. ${url.split('/').pop().split('?')[0] || url}`;
+        div.onclick = () => playFromIndex(i);
+        playlistDiv.appendChild(div);
+    });
+}
+
+function playFromIndex(index) {
+    if (index < 0 || index >= playlist.length) return;
+    currentIndex = index;
+    const url = playlist[index];
+
+    audioPlayer.pause(); audioPlayer.style.display = "none";
+    videoPlayer.pause(); videoPlayer.style.display = "none";
+    youtubePlayer.style.display = "none"; youtubePlayer.src = "";
+
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        youtubePlayer.style.display = "block";
+        let videoId = url.split("v=")[1] || url.split("youtu.be/")[1];
+        if (videoId && videoId.includes("&")) videoId = videoId.split("&")[0];
+        youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
+        videoPlayer.style.display = "block";
+        videoPlayer.src = url;
+        videoPlayer.play().catch(e => console.log("Auto-play blocked"));
+    } else {
+        audioPlayer.style.display = "block";
+        audioPlayer.src = url;
+        audioPlayer.play().catch(e => console.log("Auto-play blocked"));
+        initVisualizer(audioPlayer);
+    }
+    renderPlaylist();
+}
+
+function playMedia() {
+    if (currentIndex === -1 && playlist.length > 0) playFromIndex(0);
+    else { audioPlayer.play(); videoPlayer.play(); }
+}
+
+function pauseMedia() { audioPlayer.pause(); videoPlayer.pause(); }
+
+function nextTrack() {
+    if (playlist.length === 0) return;
+    let next = repeat ? currentIndex : (currentIndex + 1) % playlist.length;
+    playFromIndex(next);
+}
+
+function prevTrack() {
+    if (playlist.length === 0) return;
+    let prev = (currentIndex - 1 + playlist.length) % playlist.length;
+    playFromIndex(prev);
+}
+
+function toggleRepeat() {
+    repeat = !repeat;
+    document.getElementById("repeatBtn").textContent = "REPEAT: " + (repeat ? "ON" : "OFF");
+}
+
+function setVolume(v) { audioPlayer.volume = v; videoPlayer.volume = v; }
+
+function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); }
+
+function removeMedia() {
+    if (currentIndex > -1) {
+        playlist.splice(currentIndex, 1);
+        currentIndex = -1;
+        renderPlaylist();
+        savePlaylist();
+    }
+}
+
+function shufflePlaylist() {
+    playlist.sort(() => Math.random() - 0.5);
+    renderPlaylist();
+}
+
+function savePlaylist() { localStorage.setItem("zd_playlist", JSON.stringify(playlist)); }
+function loadPlaylist() {
+    const saved = localStorage.getItem("zd_playlist");
+    if (saved) { playlist = JSON.parse(saved); renderPlaylist(); }
+}
+
+/* --- VISUALIZER --- */
+function initVisualizer(audio) {
+    if (audioCtx) return; 
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    analyser.fftSize = 64;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function draw() {
+        requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            let barHeight = dataArray[i] / 2;
+            ctx.fillStyle = `rgba(255, 255, 255, ${barHeight/100})`;
+            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 2;
+        }
+    }
+    draw();
+}
+
+/* --- DRAG & DROP --- */
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => {
+    e.preventDefault();
+    const url = e.dataTransfer.getData("text");
+    if (url) addMedia(url);
 });
 
-// MINIMAL AUDIO VISUALIZER
-function initVisualizer(audio){
-  if(audioCtx) audioCtx.close();
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  analyser = audioCtx.createAnalyser();
-  source = audioCtx.createMediaElementSource(audio);
-  source.connect(analyser);
-  analyser.connect(audioCtx.destination);
-  analyser.fftSize = 256;
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
+/* --- PWA INSTALLATION LOGIC --- */
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
 
-  function draw(){
-    requestAnimationFrame(draw);
-    analyser.getByteFrequencyData(dataArray);
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    const barWidth = canvas.width / bufferLength;
-    for(let i=0;i<bufferLength;i++){
-      const barHeight = dataArray[i];
-      ctx.fillStyle = `rgb(${barHeight+100},255,50)`;
-      ctx.fillRect(i*barWidth,canvas.height-barHeight/2,barWidth,barHeight/2);
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+});
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') installBtn.style.display = 'none';
+        deferredPrompt = null;
     }
-  }
-  draw();
+});
+
+// Create Manifest dynamically for single-file PWA
+const manifest = {
+    "name": "ZeroDays Media Player",
+    "short_name": "ZeroDays",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0a0a0a",
+    "theme_color": "#0a0a0a",
+    "icons": [{
+        "src": "https://via.placeholder.com/192/000000/FFFFFF?text=ZD",
+        "sizes": "192x192",
+        "type": "image/png"
+    }]
+};
+const manifestStr = JSON.stringify(manifest);
+const blob = new Blob([manifestStr], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="manifest" href="${manifestURL}">`);
+
+// Register simple Service Worker
+if ('serviceWorker' in navigator) {
+    const swCode = `
+        self.addEventListener('fetch', (event) => {
+            event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+        });
+    `;
+    const swBlob = new Blob([swCode], {type: 'text/javascript'});
+    const swURL = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swURL);
 }
 
-// BACKGROUND LOOP
-audioPlayer.loop = true;
-videoPlayer.loop = true;
-
+window.onload = loadPlaylist;
 </script>
 </body>
 </html>
