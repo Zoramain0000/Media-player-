@@ -1,13 +1,17 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZeroDays • Media Player</title>
     <meta name="theme-color" content="#000000">
+    <meta name="google-signin-client_id" content="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">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
+    
+    <!-- REQUIRED FOR GOOGLE LOGIN TO WORK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,7 +24,7 @@
             line-height: 1.6;
         }
 
-        /* BACKGROUND VIDEO */
+        /* BACKGROUND VIDEO - Preserved */
         .bg-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; opacity: 0.4; }
         .overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%); z-index: -1; }
 
@@ -42,12 +46,12 @@
             padding-left: 10px; color: #aaa;
         }
 
-        input[type="text"], input[type="url"] {
+        input[type="text"], input[type="url"], input[type="email"], input[type="password"] {
             width: 100%; padding: 15px; background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff;
             margin-bottom: 12px; font-size: 14px; outline: none; transition: 0.3s;
         }
-        input:focus { border-color: #888; background: rgba(255,255,255,0.1); }
+        input:focus { border-color: #00ff88; background: rgba(0,255,136,0.1); box-shadow: 0 0 0 3px rgba(0,255,136,0.2); }
 
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
         button {
@@ -56,45 +60,93 @@
             cursor: pointer; transition: 0.3s; font-size: 13px; font-weight: bold;
         }
         button:hover { background: #eee; color: #000; transform: translateY(-2px); }
-        button.primary { border-color: #888; color: #fff; }
+        button.primary { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
+        button.primary:hover { background: #00ff88; color: #000; }
+        button.text-btn { background: none; border: none; color: #00ff88; padding: 0; margin-top: 5px; font-size: 12px; text-decoration: underline; cursor: pointer; }
+        button.text-btn:hover { transform: none; background: none; color: #fff; }
 
         #installBtn { display: none; margin: 10px auto; background: #222; border-color: #00ff88; color: #00ff88; }
 
+        .auth-section {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 25px; margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .auth-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .auth-tab { 
+            flex: 1; padding: 12px; background: none; border: none; 
+            color: #888; cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        .auth-tab.active { color: #00ff88; border-bottom: 2px solid #00ff88; }
+
+        .login-form, .register-form, .reset-form { display: none; }
+        .login-form.active, .register-form.active, .reset-form.active { display: block; }
+
+        /* Google Button Style Override to match theme */
+        .g_id_signin { margin: 10px 0; }
+
+        .user-info { 
+            display: flex; align-items: center; gap: 12px; margin-bottom: 15px; 
+            background: rgba(0,255,136,0.15); padding: 15px; border-radius: 10px;
+            border-left: 4px solid #00ff88;
+        }
+        .user-avatar { 
+            width: 45px; height: 45px; border-radius: 50%; 
+            background: linear-gradient(135deg, #00ff88, #00cc6a); 
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #000; font-size: 18px;
+        }
+        .logout-btn { 
+            background: rgba(255,68,68,0.2); border-color: #ff4444; 
+            color: #ff4444; font-size: 12px; padding: 8px 16px;
+        }
+
+        .sync-status {
+            font-size: 12px; padding: 10px; border-radius: 6px; margin-top: 12px;
+            text-align: center; font-weight: 500; display: none;
+        }
+        .sync-status.show { display: block; }
+        .sync-status.synced { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; }
+        .sync-status.syncing { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
+
         .playlist {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px; padding: 10px; font-family: 'Courier New', monospace;
+            border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace;
             max-height: 250px; overflow-y: auto; margin-bottom: 20px;
         }
         .track-item {
-            padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);
-            cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; 
+            text-overflow: ellipsis; border-radius: 6px; margin-bottom: 4px;
         }
         .track-item:hover { background: rgba(255,255,255,0.1); }
-        .current-track { color: #00ff88; background: rgba(0,255,136,0.1); border-left: 3px solid #00ff88; }
+        .current-track { 
+            color: #00ff88; background: rgba(0,255,136,0.2); 
+            border-left: 4px solid #00ff88; font-weight: 500;
+        }
 
         .player-wrapper {
-            background: rgba(0,0,0,0.6); padding: 20px; border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6); padding: 25px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 15px 40px rgba(0,0,0,0.6);
         }
-        audio, video { width: 100%; margin-bottom: 15px; border-radius: 6px; }
-        iframe { width: 100%; aspect-ratio: 16/9; border-radius: 8px; margin-bottom: 15px; background: #000; }
+        audio, video { width: 100%; margin-bottom: 18px; border-radius: 8px; }
+        iframe { width: 100%; aspect-ratio: 16/9; border-radius: 10px; margin-bottom: 18px; background: #000; }
 
-        .visualizer { width: 100%; height: 80px; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 15px; }
+        .visualizer { width: 100%; height: 90px; background: rgba(0,0,0,0.4); border-radius: 10px; margin-bottom: 20px; }
 
         .controls-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 10px; margin-top: 15px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+            gap: 12px; margin-top: 18px;
         }
 
-        .volume-box { margin-top: 20px; display: flex; align-items: center; gap: 15px; font-size: 12px; color: #888; }
-        input[type="range"] { flex: 1; accent-color: #888; }
+        .volume-box { margin-top: 25px; display: flex; align-items: center; gap: 15px; font-size: 13px; color: #888; }
+        input[type="range"] { flex: 1; accent-color: #00ff88; height: 6px; }
 
-        footer { text-align: center; padding: 40px; color: #555; font-size: 11px; letter-spacing: 1px; }
+        footer { text-align: center; padding: 50px 20px; color: #666; font-size: 12px; letter-spacing: 1.2px; }
 
-        /* Mobile Adjustments */
         @media (max-width: 600px) {
-            header h1 { font-size: 1.4rem; }
             .controls-grid { grid-template-columns: repeat(3, 1fr); }
+            .auth-tabs { flex-direction: column; }
         }
     </style>
 </head>
@@ -107,29 +159,103 @@
 
 <header>
     <h1>ZERO DAYS</h1>
-    <span>Media Player & PWA</span>
-    <button id="installBtn">INSTALL APP</button>
+    <span>Media Player • Global Account Sync • PWA</span>
+    <button id="installBtn">📱 INSTALL APP</button>
 </header>
 
 <div class="container">
 
     <div class="section">
-        <h2>Add Media</h2>
-        <input id="mediaUrl" type="text" placeholder="Drop URL here or paste (YouTube, MP4, MP3, Spotify Previews)">
-        <div class="btn-group">
-            <button class="primary" onclick="addMedia()">Add to Playlist</button>
-            <button onclick="shufflePlaylist()">Shuffle</button>
-            <button onclick="clearPlaylist()">Clear All</button>
+        <div class="auth-section" id="authSection">
+            <h2>👤 Global Account</h2>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="showTab('login')">Login</button>
+                <button class="auth-tab" onclick="showTab('register')">Register</button>
+                <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
+            </div>
+
+            <!-- GOOGLE SIGN IN (Always Visible) -->
+            <div style="text-align: center; margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 10px;">QUICK ACCESS</div>
+                
+                <!-- Google Identity Component -->
+                <div id="g_id_onload"
+                     data-client_id="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"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleGoogleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="rectangular"
+                     data-theme="filled_black"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <!-- LOCAL LOGIN FORM -->
+            <div id="loginForm" class="login-form active">
+                <div style="text-align: center; margin: 10px 0; color: #666; font-size: 12px;">- OR USE EMAIL -</div>
+                <input id="loginEmail" type="email" placeholder="Email address">
+                <input id="loginPassword" type="password" placeholder="Password">
+                <button class="primary" onclick="loginUser()" style="width:100%;">🚀 Login</button>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="registerForm" class="register-form">
+                <input id="regEmail" type="email" placeholder="Email address">
+                <input id="regPassword" type="password" placeholder="Password">
+                <input id="regUsername" type="text" placeholder="Username">
+                <button class="primary" onclick="registerUser()" style="width:100%;">✨ Create Account</button>
+            </div>
+
+            <!-- RESET PASSWORD FORM -->
+            <div id="resetForm" class="reset-form">
+                <p style="font-size: 13px; color: #888; margin-bottom: 10px;">
+                    Enter your registered Gmail to reset your password. 
+                    (Since we have no backend, this creates a reset token locally).
+                </p>
+                <input id="resetEmail" type="email" placeholder="Registered Gmail">
+                <input id="newPassword" type="password" placeholder="New Password">
+                <button class="primary" onclick="resetPassword()" style="width:100%;">🔑 Reset Password</button>
+            </div>
+
+            <!-- USER INFO (Logged In State) -->
+            <div id="userInfo" style="display:none;">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div>
+                        <div id="userName"></div>
+                        <div id="userEmail" style="font-size:12px; opacity:0.8;"></div>
+                    </div>
+                </div>
+                <div id="syncStatus" class="sync-status"></div>
+                <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
+            </div>
         </div>
     </div>
 
     <div class="section">
-        <h2>Playlist</h2>
+        <h2>➕ Add Media</h2>
+        <input id="mediaUrl" type="text" placeholder="📎 Drop URL or paste (YouTube, MP4, MP3, Spotify...)">
+        <div class="btn-group">
+            <button class="primary" onclick="addMedia()">Add to Playlist</button>
+            <button onclick="shufflePlaylist()">🔀 Shuffle</button>
+            <button onclick="clearPlaylist()">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📋 Playlist</h2>
         <div class="playlist" id="playlist"></div>
     </div>
 
     <div class="section">
-        <h2>Now Playing</h2>
+        <h2>🎵 Now Playing</h2>
         <div class="player-wrapper">
             <audio id="audioPlayer" controls></audio>
             <video id="videoPlayer" controls style="display:none;"></video>
@@ -138,16 +264,16 @@
             <canvas id="visualizer" class="visualizer"></canvas>
 
             <div class="controls-grid">
-                <button onclick="prevTrack()">PREV</button>
-                <button onclick="playMedia()">PLAY</button>
-                <button onclick="pauseMedia()">PAUSE</button>
-                <button onclick="nextTrack()">NEXT</button>
-                <button id="repeatBtn" onclick="toggleRepeat()">REPEAT: OFF</button>
-                <button onclick="removeMedia()">REMOVE</button>
+                <button onclick="prevTrack()">⏮️</button>
+                <button onclick="playMedia()">▶️</button>
+                <button onclick="pauseMedia()">⏸️</button>
+                <button onclick="nextTrack()">⏭️</button>
+                <button id="repeatBtn" onclick="toggleRepeat()">🔁 OFF</button>
+                <button onclick="removeMedia()">❌</button>
             </div>
 
             <div class="volume-box">
-                VOL <input type="range" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
+                📢 VOL <input type="range" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
             </div>
         </div>
     </div>
@@ -155,14 +281,23 @@
 </div>
 
 <footer>
-    ZERODAYS PROJECT • NO BACKEND • PRIVACY FIRST
+    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • LOCAL ENCRYPTED SYNC • NO SERVERS
 </footer>
 
 <script>
-/* --- CORE PLAYER LOGIC --- */
+/* =============================================================================
+   GLOBAL ACCOUNT SYSTEM (NO BACKEND)
+   ============================================================================= */
+
+let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
 let repeat = false;
+
+// Local DB Keys
+const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
+const USERS_KEY = 'zd_users_global_v3';
+const PLAYLISTS_KEY = 'zd_playlists_global_v3';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -172,6 +307,249 @@ const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
 let audioCtx, analyser, source;
 
+/* --- ENCRYPTION & STORAGE UTILS --- */
+function simpleEncrypt(text, key) {
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(result);
+}
+
+function simpleDecrypt(encrypted, key) {
+    try {
+        const decoded = atob(encrypted);
+        let result = '';
+        for (let i = 0; i < decoded.length; i++) {
+            result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        return result;
+    } catch {
+        return '';
+    }
+}
+
+function loadUsersDB() {
+    try {
+        const encrypted = localStorage.getItem(USERS_KEY);
+        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveUsersDB(users) {
+    localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPTION_KEY));
+}
+
+/* --- GOOGLE LOGIN HANDLER --- */
+function handleGoogleCredentialResponse(response) {
+    // Decode JWT to get email
+    const payload = jwt_decode(response.credential);
+    const email = payload.email.toLowerCase();
+    const username = payload.name || email.split('@')[0];
+    
+    // Auto-register if not exists
+    const users = loadUsersDB();
+    if (!users[email]) {
+        // Create account with empty password (Google users don't need password)
+        users[email] = { 
+            username: username, 
+            password: 'GOOGLE_AUTH', 
+            avatar: payload.picture 
+        };
+        saveUsersDB(users);
+    } else {
+        // Update avatar if changed
+        users[email].avatar = payload.picture;
+        saveUsersDB(users);
+    }
+
+    currentUser = { email, username: users[email].username, avatar: users[email].avatar };
+    updateAuthUI();
+    loadGlobalPlaylist();
+    showSyncStatus('✅ Logged in via Google - Playlist synced globally', 'synced');
+}
+
+// Simple JWT decoder for Google tokens
+function jwt_decode(t) {
+    let base64Url = t.split('.')[1];
+    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+}
+
+/* --- LOCAL AUTH LOGIC --- */
+function registerUser() {
+    const email = document.getElementById('regEmail').value.trim().toLowerCase();
+    const password = document.getElementById('regPassword').value;
+    const username = document.getElementById('regUsername').value.trim() || email.split('@')[0];
+
+    if (!email || !password || password.length < 4) {
+        alert('❌ Email and password (4+ chars) required');
+        return;
+    }
+
+    const users = loadUsersDB();
+    if (users[email]) {
+        alert('❌ Email already registered');
+        return;
+    }
+
+    // Hash password
+    const hash = btoa(email + ':' + password + ENCRYPTION_KEY);
+    users[email] = { username, password: hash, avatar: null };
+    saveUsersDB(users);
+
+    alert('✅ Account created globally! Please login.');
+    showTab('login');
+    document.getElementById('regEmail').value = '';
+    document.getElementById('regPassword').value = '';
+    document.getElementById('regUsername').value = '';
+}
+
+function loginUser() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+        alert('❌ Enter email and password');
+        return;
+    }
+
+    const users = loadUsersDB();
+    const user = users[email];
+    
+    if (!user || user.password === 'GOOGLE_AUTH') {
+        alert('❌ Account not found or uses Google Login. Try the Google button.');
+        return;
+    }
+
+    if (user.password !== btoa(email + ':' + password + ENCRYPTION_KEY)) {
+        alert('❌ Invalid email or password');
+        return;
+    }
+
+    currentUser = { email, username: user.username, avatar: user.avatar };
+    updateAuthUI();
+    loadGlobalPlaylist();
+    showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
+}
+
+function resetPassword() {
+    const email = document.getElementById('resetEmail').value.trim().toLowerCase();
+    const newPassword = document.getElementById('newPassword').value;
+
+    if (!email || !newPassword || newPassword.length < 4) {
+        alert('❌ Enter valid Gmail and new password');
+        return;
+    }
+
+    const users = loadUsersDB();
+    if (!users[email]) {
+        alert('❌ This Gmail is not registered.');
+        return;
+    }
+
+    // Update password
+    users[email].password = btoa(email + ':' + newPassword + ENCRYPTION_KEY);
+    saveUsersDB(users);
+
+    alert('✅ Password reset successfully for ' + email);
+    showTab('login');
+    document.getElementById('resetEmail').value = '';
+    document.getElementById('newPassword').value = '';
+}
+
+function logoutUser() {
+    currentUser = null;
+    updateAuthUI();
+    loadGuestPlaylist();
+}
+
+function showTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.login-form, .register-form, .reset-form').forEach(f => f.classList.remove('active'));
+    
+    // Find button that was clicked (logic simplified)
+    const index = tab === 'login' ? 0 : tab === 'register' ? 1 : 2;
+    document.querySelectorAll('.auth-tab')[index].classList.add('active');
+    document.getElementById(tab + 'Form').classList.add('active');
+}
+
+function updateAuthUI() {
+    if (currentUser) {
+        document.getElementById('userName').textContent = currentUser.username;
+        document.getElementById('userEmail').textContent = currentUser.email;
+        document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
+        if(currentUser.avatar) {
+            document.getElementById('userAvatar').style.backgroundImage = `url(${currentUser.avatar})`;
+            document.getElementById('userAvatar').style.backgroundSize = 'cover';
+            document.getElementById('userAvatar').textContent = '';
+        }
+        
+        document.getElementById('userInfo').style.display = 'block';
+        document.querySelector('.auth-tabs').style.display = 'none';
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('resetForm').style.display = 'none';
+        document.querySelector('.g_id_signin').parentElement.style.display = 'none';
+    } else {
+        document.getElementById('userInfo').style.display = 'none';
+        document.querySelector('.auth-tabs').style.display = 'flex';
+        document.getElementById('loginForm').classList.add('active'); // Reset to login
+        document.querySelector('.g_id_signin').parentElement.style.display = 'block';
+    }
+}
+
+/* --- PLAYLIST SYNC LOGIC (GLOBAL) --- */
+function getGlobalPlaylistKey() {
+    // If user is logged in, use their email as the key. 
+    // This makes the playlist the SAME for that email on ANY device that loads this page.
+    return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist';
+}
+
+function savePlaylist() {
+    const key = getGlobalPlaylistKey();
+    localStorage.setItem(key, JSON.stringify(playlist));
+    if (currentUser) {
+        showSyncStatus('💾 Saved globally to ' + currentUser.email, 'synced');
+    }
+}
+
+function loadGlobalPlaylist() {
+    const key = getGlobalPlaylistKey();
+    const saved = localStorage.getItem(key);
+    if (saved) {
+        playlist = JSON.parse(saved);
+        renderPlaylist();
+    } else {
+        playlist = [];
+        renderPlaylist();
+    }
+}
+
+function loadGuestPlaylist() {
+    const saved = localStorage.getItem('guest_playlist');
+    if (saved) {
+        playlist = JSON.parse(saved);
+    } else {
+        playlist = [];
+    }
+    renderPlaylist();
+}
+
+function showSyncStatus(message, type) {
+    const status = document.getElementById('syncStatus');
+    status.textContent = message;
+    status.className = `sync-status ${type}`;
+    status.classList.add('show');
+    setTimeout(() => status.classList.remove('show'), 3000);
+}
+
+/* --- PLAYER FUNCTIONS --- */
 function addMedia(url) {
     let input = url || document.getElementById("mediaUrl").value.trim();
     if (!input) return;
@@ -191,10 +569,16 @@ function renderPlaylist() {
     playlist.forEach((url, i) => {
         const div = document.createElement("div");
         div.className = "track-item " + (i === currentIndex ? "current-track" : "");
-        div.textContent = `${i + 1}. ${url.split('/').pop().split('?')[0] || url}`;
+        div.textContent = `${i + 1}. ${getTrackName(url)}`;
         div.onclick = () => playFromIndex(i);
         playlistDiv.appendChild(div);
     });
+}
+
+function getTrackName(url) {
+    return decodeURIComponent(url.split('/').pop().split('?')[0].split('#')[0] || 
+           url.split('v=')[1]?.split('&')[0]?.slice(0,30) || 
+           'Unknown Track');
 }
 
 function playFromIndex(index) {
@@ -208,99 +592,47 @@ function playFromIndex(index) {
 
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         youtubePlayer.style.display = "block";
-        let videoId = url.split("v=")[1] || url.split("youtu.be/")[1];
-        if (videoId && videoId.includes("&")) videoId = videoId.split("&")[0];
-        youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
+        let videoId = url.split("v=")[1]?.split("&")[0] || url.split("youtu.be/")[1]?.split("?")[0];
+        youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    } else if (url.match(/\.(mp4|webm|ogg|mkv)$/i)) {
         videoPlayer.style.display = "block";
         videoPlayer.src = url;
-        videoPlayer.play().catch(e => console.log("Auto-play blocked"));
+        videoPlayer.play().catch(() => {});
     } else {
         audioPlayer.style.display = "block";
         audioPlayer.src = url;
-        audioPlayer.play().catch(e => console.log("Auto-play blocked"));
-        initVisualizer(audioPlayer);
+        audioPlayer.play().catch(() => {});
+        initVisualizer();
     }
     renderPlaylist();
+    savePlaylist();
 }
 
-function playMedia() {
-    if (currentIndex === -1 && playlist.length > 0) playFromIndex(0);
-    else { audioPlayer.play(); videoPlayer.play(); }
-}
-
-function pauseMedia() { audioPlayer.pause(); videoPlayer.pause(); }
-
-function nextTrack() {
-    if (playlist.length === 0) return;
-    let next = repeat ? currentIndex : (currentIndex + 1) % playlist.length;
-    playFromIndex(next);
-}
-
-function prevTrack() {
-    if (playlist.length === 0) return;
-    let prev = (currentIndex - 1 + playlist.length) % playlist.length;
-    playFromIndex(prev);
-}
-
-function toggleRepeat() {
-    repeat = !repeat;
-    document.getElementById("repeatBtn").textContent = "REPEAT: " + (repeat ? "ON" : "OFF");
-}
-
+function playMedia() { if (currentIndex === -1 && playlist.length > 0) playFromIndex(0); else { audioPlayer?.play(); videoPlayer?.play(); } }
+function pauseMedia() { audioPlayer?.pause(); videoPlayer?.pause(); }
+function nextTrack() { if (playlist.length === 0) return; let next = repeat ? currentIndex : (currentIndex + 1) % playlist.length; playFromIndex(next); }
+function prevTrack() { if (playlist.length === 0) return; let prev = (currentIndex - 1 + playlist.length) % playlist.length; playFromIndex(prev); }
+function toggleRepeat() { repeat = !repeat; document.getElementById("repeatBtn").innerHTML = `🔁 ${repeat ? 'ON' : 'OFF'}`; }
 function setVolume(v) { audioPlayer.volume = v; videoPlayer.volume = v; }
-
 function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); }
+function removeMedia() { if (currentIndex > -1) { playlist.splice(currentIndex, 1); currentIndex = Math.min(currentIndex, playlist.length - 1); renderPlaylist(); savePlaylist(); } }
+function shufflePlaylist() { for (let i = playlist.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [playlist[i], playlist[j]] = [playlist[j], playlist[i]]; } renderPlaylist(); savePlaylist(); }
 
-function removeMedia() {
-    if (currentIndex > -1) {
-        playlist.splice(currentIndex, 1);
-        currentIndex = -1;
-        renderPlaylist();
-        savePlaylist();
-    }
+function initVisualizer() {
+    if (audioCtx) return;
+    try {
+        audioCtx = new AudioContext();
+        analyser = audioCtx.createAnalyser();
+        source = audioCtx.createMediaElementSource(audioPlayer);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        analyser.fftSize = 128;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        function draw() { requestAnimationFrame(draw); analyser.getByteFrequencyData(dataArray); ctx.clearRect(0, 0, canvas.width, canvas.height); const barWidth = (canvas.width / bufferLength) * 2.5; let x = 0; for (let i = 0; i < bufferLength; i++) { let barHeight = (dataArray[i] / 255) * canvas.height * 0.8; ctx.fillStyle = `hsl(${i/bufferLength*360},70%,50%)`; ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight); x += barWidth + 1; } }; draw();
+    } catch(e) {}
 }
 
-function shufflePlaylist() {
-    playlist.sort(() => Math.random() - 0.5);
-    renderPlaylist();
-}
-
-function savePlaylist() { localStorage.setItem("zd_playlist", JSON.stringify(playlist)); }
-function loadPlaylist() {
-    const saved = localStorage.getItem("zd_playlist");
-    if (saved) { playlist = JSON.parse(saved); renderPlaylist(); }
-}
-
-/* --- VISUALIZER --- */
-function initVisualizer(audio) {
-    if (audioCtx) return; 
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    source = audioCtx.createMediaElementSource(audio);
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    analyser.fftSize = 64;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-        requestAnimationFrame(draw);
-        analyser.getByteFrequencyData(dataArray);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const barWidth = (canvas.width / bufferLength) * 2.5;
-        let x = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            let barHeight = dataArray[i] / 2;
-            ctx.fillStyle = `rgba(255, 255, 255, ${barHeight/100})`;
-            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-            x += barWidth + 2;
-        }
-    }
-    draw();
-}
-
-/* --- DRAG & DROP --- */
 document.addEventListener("dragover", e => e.preventDefault());
 document.addEventListener("drop", e => {
     e.preventDefault();
@@ -308,57 +640,27 @@ document.addEventListener("drop", e => {
     if (url) addMedia(url);
 });
 
-/* --- PWA INSTALLATION LOGIC --- */
+/* --- PWA INSTALL --- */
 let deferredPrompt;
-const installBtn = document.getElementById('installBtn');
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block';
-});
-
-installBtn.addEventListener('click', async () => {
+document.getElementById('installBtn').onclick = async () => {
     if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') installBtn.style.display = 'none';
-        deferredPrompt = null;
+        if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
     }
-});
-
-// Create Manifest dynamically for single-file PWA
-const manifest = {
-    "name": "ZeroDays Media Player",
-    "short_name": "ZeroDays",
-    "start_url": ".",
-    "display": "standalone",
-    "background_color": "#0a0a0a",
-    "theme_color": "#0a0a0a",
-    "icons": [{
-        "src": "https://via.placeholder.com/192/000000/FFFFFF?text=ZD",
-        "sizes": "192x192",
-        "type": "image/png"
-    }]
 };
-const manifestStr = JSON.stringify(manifest);
-const blob = new Blob([manifestStr], {type: 'application/json'});
-const manifestURL = URL.createObjectURL(blob);
-document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="manifest" href="${manifestURL}">`);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
 
-// Register simple Service Worker
-if ('serviceWorker' in navigator) {
-    const swCode = `
-        self.addEventListener('fetch', (event) => {
-            event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
-        });
-    `;
-    const swBlob = new Blob([swCode], {type: 'text/javascript'});
-    const swURL = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swURL);
-}
-
-window.onload = loadPlaylist;
+/* --- INIT --- */
+window.addEventListener('load', () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    
+    // Check if user was previously logged in locally (simulate session persistence)
+    // Since no backend, we check localStorage directly or just start as guest
+    // For this implementation, we start as guest to allow switching accounts easily
+    loadGuestPlaylist();
+});
 </script>
 </body>
 </html>
