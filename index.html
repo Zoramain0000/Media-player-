@@ -25,33 +25,13 @@
         .overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%); z-index: -1; }
 
         header {
-            padding: 15px 20px;
+            padding: 30px 20px;
             text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             backdrop-filter: blur(5px);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative; /* Base for bubble menus */
         }
-        header h1 { letter-spacing: 4px; font-size: 1.5rem; text-transform: uppercase; }
-        
-        /* Ensures buttons are always visible and aligned right */
-        .header-right { 
-            display: flex; 
-            gap: 10px; 
-            align-items: center; 
-            z-index: 10; /* Keeps buttons in front */
-        }
-        .live-clock { font-size: 14px; color: #00ff88; font-family: 'Courier New', monospace; font-weight: bold; }
-        
-        .icon-btn {
-            width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1);
-            border: 1px solid #444; color: #aaa; cursor: pointer; transition: 0.3s;
-            display: flex; align-items: center; justify-content: center; font-size: 18px;
-        }
-        .icon-btn:hover { background: #eee; color: #000; transform: scale(1.1); }
-        .icon-btn.active { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.2); }
+        header h1 { letter-spacing: 4px; font-size: 2rem; text-transform: uppercase; }
+        header span { color: #888; font-size: 12px; display: block; margin-top: 5px; }
 
         .container { max-width: 900px; margin: 20px auto; padding: 0 20px; padding-bottom: 100px; }
 
@@ -59,7 +39,7 @@
         .section h2 {
             font-size: 14px; text-transform: uppercase; letter-spacing: 2px;
             margin-bottom: 15px; border-left: 3px solid #666;
-            padding-left: 10px; color: #aaa; display: flex; justify-content: space-between; align-items: center;
+            padding-left: 10px; color: #aaa;
         }
 
         input[type="text"], input[type="url"], input[type="email"], input[type="password"] {
@@ -78,8 +58,16 @@
         button:hover { background: #eee; color: #000; transform: translateY(-2px); }
         button.primary { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
         button.primary:hover { background: #00ff88; color: #000; }
-        button.danger { border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.1); }
-        button.danger:hover { background: #ff4444; color: #000; }
+        
+        /* Custom Quick Access Button Style */
+        .quick-btn {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #1a1a1a, #0a2a1a); 
+            border: 1px solid #00ff88; color: #00ff88; border-radius: 8px; cursor: pointer; font-size: 14px; 
+            font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 12px;
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .quick-btn:hover { background: #00ff88; color: #000; transform: translateY(-2px); box-shadow: 0 0 15px rgba(0,255,136,0.4); }
+        .quick-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
         #installBtn { display: none; margin: 10px auto; background: #222; border-color: #00ff88; color: #00ff88; }
 
@@ -108,6 +96,11 @@
             background: linear-gradient(135deg, #00ff88, #00cc6a); 
             display: flex; align-items: center; justify-content: center;
             font-weight: bold; color: #000; font-size: 18px;
+            background-size: cover; background-position: center;
+        }
+        .logout-btn { 
+            background: rgba(255,68,68,0.2); border-color: #ff4444; 
+            color: #ff4444; font-size: 12px; padding: 8px 16px;
         }
 
         .sync-status {
@@ -116,24 +109,23 @@
         }
         .sync-status.show { display: block; }
         .sync-status.synced { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; }
+        .sync-status.syncing { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
 
         .playlist {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace;
-            max-height: 300px; overflow-y: auto; margin-bottom: 20px;
+            max-height: 250px; overflow-y: auto; margin-bottom: 20px;
         }
         .track-item {
             padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
             cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; 
             text-overflow: ellipsis; border-radius: 6px; margin-bottom: 4px;
-            display: flex; justify-content: space-between; align-items: center;
         }
         .track-item:hover { background: rgba(255,255,255,0.1); }
         .current-track { 
             color: #00ff88; background: rgba(0,255,136,0.2); 
             border-left: 4px solid #00ff88; font-weight: 500;
         }
-        .remove-track-btn { background: none; border: none; color: #ff4444; cursor: pointer; font-size: 14px; padding: 0 5px; }
 
         .player-wrapper {
             background: rgba(0,0,0,0.6); padding: 25px; border-radius: 12px;
@@ -152,35 +144,11 @@
         .volume-box { margin-top: 25px; display: flex; align-items: center; gap: 15px; font-size: 13px; color: #888; }
         input[type="range"] { flex: 1; accent-color: #00ff88; height: 6px; }
 
-        /* BUBBLE MENUS (Vault & Settings) - Now fixed to stay on top of everything */
-        .bubble-menu {
-            position: absolute; top: 65px; right: 15px; width: 340px;
-            background: #111; border: 1px solid #333; border-radius: 15px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.9); padding: 20px;
-            z-index: 9999; display: none; animation: fadeSlide 0.3s ease;
-        }
-        @keyframes fadeSlide { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .bubble-menu h3 { margin-bottom: 15px; color: #00ff88; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        
-        .vault-item {
-            background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 10px;
-            border-left: 3px solid #00ff88; word-wrap: break-word; position: relative;
-        }
-        .vault-item p { font-size: 12px; color: #ccc; margin-bottom: 4px; }
-        .vault-item p span { color: #888; }
-        .vault-del { position: absolute; top: 5px; right: 5px; background: none; border: none; color: #ff4444; cursor: pointer; font-size: 12px; }
-
-        .setting-group { margin-bottom: 20px; }
-        .setting-group label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
-
         footer { text-align: center; padding: 50px 20px; color: #666; font-size: 12px; letter-spacing: 1.2px; }
 
         @media (max-width: 600px) {
             .controls-grid { grid-template-columns: repeat(3, 1fr); }
             .auth-tabs { flex-direction: column; }
-            .bubble-menu { width: calc(100vw - 30px); right: 15px; left: 15px; } /* Full width on mobile */
-            header h1 { font-size: 1.2rem; letter-spacing: 2px; }
-            .live-clock { display: none; } /* Hide clock on very small screens to save space */
         }
     </style>
 </head>
@@ -193,56 +161,41 @@
 
 <header>
     <h1>ZERO DAYS</h1>
-    <div class="header-right">
-        <div class="live-clock" id="liveClock">00:00:00</div>
-        <button class="icon-btn" id="vaultBtn" title="Password Vault">🔒</button>
-        <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
-    </div>
-
-    <!-- PASSWORD VAULT BUBBLE -->
-    <div class="bubble-menu" id="vaultMenu">
-        <h3>🔒 Password Vault</h3>
-        <input type="text" id="vaultName" placeholder="Website/App Name">
-        <input type="email" id="vaultEmail" placeholder="Email/Username">
-        <input type="password" id="vaultPass" placeholder="Password">
-        <button class="primary" onclick="addVaultItem()" style="width:100%; margin-bottom: 15px;">+ Save Credential</button>
-        <div id="vaultList"></div>
-    </div>
-
-    <!-- SETTINGS BUBBLE -->
-    <div class="bubble-menu" id="settingsMenu">
-        <h3>⚙️ Settings & Account</h3>
-        <div id="settingsUserInfo" style="display:none; margin-bottom: 20px; background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px;">
-            <div style="font-weight:bold; margin-bottom:5px;" id="settingsName">User</div>
-            <div style="font-size:12px; color:#aaa;" id="settingsEmail">email@example.com</div>
-        </div>
-        
-        <div class="setting-group">
-            <label>System Clock (Auto-Detected)</label>
-            <div style="background:#222; padding:10px; border-radius:6px; font-family:monospace; color:#00ff88;" id="settingsTimezone">Detecting...</div>
-        </div>
-
-        <button class="danger" onclick="logoutUser()" style="width:100%; margin-top:10px;">🚪 Log Out</button>
-    </div>
+    <span>Media Player • Global Account Sync • PWA</span>
+    <button id="installBtn">📱 INSTALL APP</button>
 </header>
 
 <div class="container">
 
     <div class="section">
         <div class="auth-section" id="authSection">
-            <h2>👤 Local Account</h2>
+            <h2>👤 Global Account</h2>
+            
             <div class="auth-tabs">
                 <button class="auth-tab active" onclick="showTab('login')">Login</button>
                 <button class="auth-tab" onclick="showTab('register')">Register</button>
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
+            <!-- QUICK ACCESS FEATURE -->
+            <div id="quickAccessWrapper" style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">INSTANT SESSION (NO PASSWORD REQUIRED)</div>
+                <input id="quickUsername" type="text" placeholder="Enter any username to start instantly">
+                <button class="quick-btn" onclick="quickAccessLogin()">
+                    <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Quick Access
+                </button>
+            </div>
+
+            <!-- LOCAL LOGIN FORM -->
             <div id="loginForm" class="login-form active">
+                <div style="text-align: center; margin: 10px 0; color: #666; font-size: 12px;">- OR USE SECURE EMAIL LOGIN -</div>
                 <input id="loginEmail" type="email" placeholder="Email address">
                 <input id="loginPassword" type="password" placeholder="Password">
                 <button class="primary" onclick="loginUser()" style="width:100%;">🚀 Login</button>
             </div>
 
+            <!-- REGISTER FORM -->
             <div id="registerForm" class="register-form">
                 <input id="regEmail" type="email" placeholder="Email address">
                 <input id="regPassword" type="password" placeholder="Password">
@@ -250,13 +203,17 @@
                 <button class="primary" onclick="registerUser()" style="width:100%;">✨ Create Account</button>
             </div>
 
+            <!-- RESET PASSWORD FORM -->
             <div id="resetForm" class="reset-form">
-                <p style="font-size: 13px; color: #888; margin-bottom: 10px;">Enter your registered email to reset your password locally.</p>
+                <p style="font-size: 13px; color: #888; margin-bottom: 10px;">
+                    Enter your registered email to reset your password locally.
+                </p>
                 <input id="resetEmail" type="email" placeholder="Registered Email">
                 <input id="newPassword" type="password" placeholder="New Password">
                 <button class="primary" onclick="resetPassword()" style="width:100%;">🔑 Reset Password</button>
             </div>
 
+            <!-- USER INFO (Logged In State) -->
             <div id="userInfo" style="display:none;">
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">U</div>
@@ -266,15 +223,13 @@
                     </div>
                 </div>
                 <div id="syncStatus" class="sync-status"></div>
+                <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
             </div>
         </div>
     </div>
 
     <div class="section">
-        <h2>
-            ➕ Add Media
-            <button class="primary" onclick="exportPlaylist()" style="font-size:12px; padding: 8px 15px;">📄 Export</button>
-        </h2>
+        <h2>➕ Add Media</h2>
         <input id="mediaUrl" type="text" placeholder="📎 Drop URL or paste (YouTube, MP4, MP3, Spotify...)">
         <div class="btn-group">
             <button class="primary" onclick="addMedia()">Add to Playlist</button>
@@ -303,7 +258,7 @@
                 <button onclick="pauseMedia()">⏸️</button>
                 <button onclick="nextTrack()">⏭️</button>
                 <button id="repeatBtn" onclick="toggleRepeat()">🔁 OFF</button>
-                <button onclick="removeMedia()">❌ Remove</button>
+                <button onclick="removeMedia()">❌</button>
             </div>
 
             <div class="volume-box">
@@ -311,14 +266,18 @@
             </div>
         </div>
     </div>
+
 </div>
 
-<footer>ZERODAYS PROJECT • LOCAL ENCRYPTED SYNC • VAULT SECURE</footer>
+<footer>
+    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • QUICK LOCAL SYNC • NO API KEYS
+</footer>
 
 <script>
 /* =============================================================================
-   CORE SYSTEM & STATE
+   GLOBAL ACCOUNT SYSTEM - QUICK ACCESS & LOCAL AUTH (NO API KEYS)
    ============================================================================= */
+
 let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
@@ -326,7 +285,7 @@ let repeat = false;
 
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
 const USERS_KEY = 'zd_users_global_v7';
-const VAULT_KEY = 'zd_vault_v1';
+const SESSION_KEY = 'zd_active_session';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -335,6 +294,42 @@ const youtubePlayer = document.getElementById("youtubePlayer");
 const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
 let audioCtx, analyser, source;
+
+/* --- QUICK ACCESS FEATURE --- */
+function quickAccessLogin() {
+    const username = document.getElementById('quickUsername').value.trim();
+    if (!username || username.length < 2) {
+        alert('❌ Please enter a username (2+ chars) to start quickly.');
+        return;
+    }
+
+    const sessionId = 'quick_' + username.toLowerCase().replace(/\s+/g, '_');
+    
+    const users = loadUsersDB();
+    if (!users[sessionId]) {
+        users[sessionId] = { username: username, password: 'QUICK_ACCESS', avatar: null };
+        saveUsersDB(users);
+    }
+
+    currentUser = { email: sessionId, username: username, avatar: null };
+    saveSession();
+    updateAuthUI();
+    loadGlobalPlaylist();
+    showSyncStatus('⚡ Quick Access Active - Session saved locally', 'synced');
+}
+
+function saveSession() {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+}
+
+function loadSession() {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (saved) {
+        currentUser = JSON.parse(saved);
+        updateAuthUI();
+        loadGlobalPlaylist();
+    }
+}
 
 /* --- ENCRYPTION & STORAGE UTILS --- */
 function simpleEncrypt(text, key) {
@@ -353,127 +348,22 @@ function simpleDecrypt(encrypted, key) {
             result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
         }
         return result;
-    } catch { return ''; }
+    } catch {
+        return '';
+    }
 }
 
 function loadUsersDB() {
     try {
         const encrypted = localStorage.getItem(USERS_KEY);
         return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
-    } catch { return {}; }
+    } catch {
+        return {};
+    }
 }
 
 function saveUsersDB(users) {
     localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPTION_KEY));
-}
-
-function loadVaultDB() {
-    try {
-        const encrypted = localStorage.getItem(VAULT_KEY);
-        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : [];
-    } catch { return []; }
-}
-
-function saveVaultDB(vault) {
-    localStorage.setItem(VAULT_KEY, simpleEncrypt(JSON.stringify(vault), ENCRYPTION_KEY));
-}
-
-/* --- BUBBLE MENUS (Always visible logic) --- */
-const vaultBtn = document.getElementById('vaultBtn');
-const vaultMenu = document.getElementById('vaultMenu');
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsMenu = document.getElementById('settingsMenu');
-
-vaultBtn.onclick = (e) => {
-    e.stopPropagation();
-    settingsMenu.style.display = 'none'; settingsBtn.classList.remove('active');
-    vaultMenu.style.display = vaultMenu.style.display === 'block' ? 'none' : 'block';
-    vaultBtn.classList.toggle('active');
-    if (vaultMenu.style.display === 'block') renderVault();
-};
-
-settingsBtn.onclick = (e) => {
-    e.stopPropagation();
-    vaultMenu.style.display = 'none'; vaultBtn.classList.remove('active');
-    settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
-    settingsBtn.classList.toggle('active');
-    if (settingsMenu.style.display === 'block') updateSettingsUI();
-};
-
-document.addEventListener('click', (e) => {
-    if (!vaultMenu.contains(e.target) && e.target !== vaultBtn) { vaultMenu.style.display = 'none'; vaultBtn.classList.remove('active'); }
-    if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) { settingsMenu.style.display = 'none'; settingsBtn.classList.remove('active'); }
-});
-
-/* --- VAULT LOGIC --- */
-function addVaultItem() {
-    const name = document.getElementById('vaultName').value.trim();
-    const email = document.getElementById('vaultEmail').value.trim();
-    const pass = document.getElementById('vaultPass').value;
-    if (!name || !email || !pass) return alert('Fill all vault fields!');
-
-    const vault = loadVaultDB();
-    vault.push({ id: Date.now(), name, email, pass });
-    saveVaultDB(vault);
-    
-    document.getElementById('vaultName').value = '';
-    document.getElementById('vaultEmail').value = '';
-    document.getElementById('vaultPass').value = '';
-    renderVault();
-}
-
-function deleteVaultItem(id) {
-    let vault = loadVaultDB();
-    vault = vault.filter(item => item.id !== id);
-    saveVaultDB(vault);
-    renderVault();
-}
-
-function renderVault() {
-    const list = document.getElementById('vaultList');
-    const vault = loadVaultDB();
-    list.innerHTML = vault.length === 0 ? '<p style="font-size:12px; color:#666; text-align:center;">Vault is empty</p>' : '';
-    
-    vault.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'vault-item';
-        div.innerHTML = `
-            <button class="vault-del" onclick="deleteVaultItem(${item.id})">✖</button>
-            <p><span>App:</span> ${item.name}</p>
-            <p><span>User:</span> ${item.email}</p>
-            <p><span>Pass:</span> ${'•'.repeat(item.pass.length)}</p>
-        `;
-        div.onclick = (e) => {
-            if(e.target.tagName !== 'BUTTON') {
-                const passP = div.querySelectorAll('p')[2];
-                passP.innerHTML = `<span>Pass:</span> ${item.pass}`;
-                setTimeout(() => { passP.innerHTML = `<span>Pass:</span> ${'•'.repeat(item.pass.length)}`; }, 3000);
-            }
-        };
-        list.appendChild(div);
-    });
-}
-
-/* --- REAL-TIME CLOCK --- */
-function updateClock() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { hour12: false });
-    document.getElementById('liveClock').textContent = timeString;
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-function updateSettingsUI() {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    document.getElementById('settingsTimezone').textContent = `TZ: ${tz} | ${new Date().toLocaleDateString()}`;
-    
-    if (currentUser) {
-        document.getElementById('settingsUserInfo').style.display = 'block';
-        document.getElementById('settingsName').textContent = currentUser.username;
-        document.getElementById('settingsEmail').textContent = currentUser.email;
-    } else {
-        document.getElementById('settingsUserInfo').style.display = 'none';
-    }
 }
 
 /* --- LOCAL AUTH LOGIC --- */
@@ -482,57 +372,87 @@ function registerUser() {
     const password = document.getElementById('regPassword').value;
     const username = document.getElementById('regUsername').value.trim() || email.split('@')[0];
 
-    if (!email || !password || password.length < 4) return alert('❌ Email and password (4+ chars) required');
-    const users = loadUsersDB();
-    if (users[email]) return alert('❌ Email already registered');
+    if (!email || !password || password.length < 4) {
+        alert('❌ Email and password (4+ chars) required');
+        return;
+    }
 
-    users[email] = { username, password: btoa(email + ':' + password + ENCRYPTION_KEY), avatar: null };
+    const users = loadUsersDB();
+    if (users[email]) {
+        alert('❌ Email already registered');
+        return;
+    }
+
+    const hash = btoa(email + ':' + password + ENCRYPTION_KEY);
+    users[email] = { username, password: hash, avatar: null };
     saveUsersDB(users);
-    alert('✅ Account created! Please login.');
+
+    alert('✅ Account created globally! Please login.');
     showTab('login');
 }
 
 function loginUser() {
     const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
-    if (!email || !password) return alert('❌ Enter email and password');
+
+    if (!email || !password) {
+        alert('❌ Enter email and password');
+        return;
+    }
 
     const users = loadUsersDB();
     const user = users[email];
-    if (!user) return alert('❌ Account not found');
-    if (user.password !== btoa(email + ':' + password + ENCRYPTION_KEY)) return alert('❌ Invalid password');
+    
+    if (!user || user.password === 'QUICK_ACCESS') {
+        alert('❌ Account not found or uses Quick Access. Please register first.');
+        return;
+    }
+
+    if (user.password !== btoa(email + ':' + password + ENCRYPTION_KEY)) {
+        alert('❌ Invalid email or password');
+        return;
+    }
 
     currentUser = { email, username: user.username, avatar: user.avatar };
+    saveSession();
     updateAuthUI();
     loadGlobalPlaylist();
-    showSyncStatus('✅ Logged in - Playlist synced', 'synced');
+    showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
 }
 
 function resetPassword() {
     const email = document.getElementById('resetEmail').value.trim().toLowerCase();
     const newPassword = document.getElementById('newPassword').value;
-    if (!email || !newPassword || newPassword.length < 4) return alert('❌ Enter valid email and new password');
+
+    if (!email || !newPassword || newPassword.length < 4) {
+        alert('❌ Enter valid email and new password');
+        return;
+    }
 
     const users = loadUsersDB();
-    if (!users[email]) return alert('❌ This email is not registered.');
+    if (!users[email]) {
+        alert('❌ This email is not registered.');
+        return;
+    }
 
     users[email].password = btoa(email + ':' + newPassword + ENCRYPTION_KEY);
     saveUsersDB(users);
+
     alert('✅ Password reset successfully for ' + email);
     showTab('login');
 }
 
 function logoutUser() {
+    localStorage.removeItem(SESSION_KEY);
     currentUser = null;
     updateAuthUI();
     loadGuestPlaylist();
-    settingsMenu.style.display = 'none';
-    settingsBtn.classList.remove('active');
 }
 
 function showTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.login-form, .register-form, .reset-form').forEach(f => f.classList.remove('active'));
+    
     const index = tab === 'login' ? 0 : tab === 'register' ? 1 : 2;
     document.querySelectorAll('.auth-tab')[index].classList.add('active');
     document.getElementById(tab + 'Form').classList.add('active');
@@ -541,46 +461,75 @@ function showTab(tab) {
 function updateAuthUI() {
     if (currentUser) {
         document.getElementById('userName').textContent = currentUser.username;
-        document.getElementById('userEmail').textContent = currentUser.email;
+        document.getElementById('userEmail').textContent = currentUser.email.includes('@') ? currentUser.email : 'Quick Access Session';
+        
         const avatarEl = document.getElementById('userAvatar');
         avatarEl.textContent = currentUser.username[0].toUpperCase();
+        avatarEl.style.backgroundImage = 'none';
+        
+        if(currentUser.avatar) {
+            avatarEl.style.backgroundImage = `url(${currentUser.avatar})`;
+            avatarEl.textContent = '';
+        }
+        
         document.getElementById('userInfo').style.display = 'block';
         document.querySelector('.auth-tabs').style.display = 'none';
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('resetForm').style.display = 'none';
+        document.getElementById('quickAccessWrapper').style.display = 'none';
     } else {
         document.getElementById('userInfo').style.display = 'none';
         document.querySelector('.auth-tabs').style.display = 'flex';
         document.getElementById('loginForm').style.display = 'block'; 
         document.getElementById('loginForm').classList.add('active');
+        document.getElementById('quickAccessWrapper').style.display = 'block';
     }
 }
 
-/* --- PLAYLIST LOGIC --- */
-function getGlobalPlaylistKey() { return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist'; }
-function savePlaylist() { localStorage.setItem(getGlobalPlaylistKey(), JSON.stringify(playlist)); }
+/* --- PLAYLIST SYNC LOGIC --- */
+function getGlobalPlaylistKey() {
+    return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist';
+}
+
+function savePlaylist() {
+    const key = getGlobalPlaylistKey();
+    localStorage.setItem(key, JSON.stringify(playlist));
+    if (currentUser) {
+        showSyncStatus('💾 Saved globally to ' + currentUser.username, 'synced');
+    }
+}
 
 function loadGlobalPlaylist() {
-    playlist = JSON.parse(localStorage.getItem(getGlobalPlaylistKey()) || '[]');
+    const key = getGlobalPlaylistKey();
+    const saved = localStorage.getItem(key);
+    playlist = saved ? JSON.parse(saved) : [];
     renderPlaylist();
 }
 
 function loadGuestPlaylist() {
-    playlist = JSON.parse(localStorage.getItem('guest_playlist') || '[]');
+    const saved = localStorage.getItem('guest_playlist');
+    playlist = saved ? JSON.parse(saved) : [];
     renderPlaylist();
 }
 
 function showSyncStatus(message, type) {
     const status = document.getElementById('syncStatus');
     status.textContent = message;
-    status.className = `sync-status ${type} show`;
+    status.className = `sync-status ${type}`;
+    status.classList.add('show');
     setTimeout(() => status.classList.remove('show'), 3000);
 }
 
+/* --- PLAYER FUNCTIONS --- */
 function addMedia(url) {
     let input = url || document.getElementById("mediaUrl").value.trim();
     if (!input) return;
+
+    if (input.includes("spotify.com") && input.includes("preview")) {
+        input = input.replace("open.spotify.com/track", "p.scdn.co/mp3-preview");
+    }
+
     playlist.push(input);
     renderPlaylist();
     document.getElementById("mediaUrl").value = "";
@@ -589,33 +538,19 @@ function addMedia(url) {
 
 function renderPlaylist() {
     playlistDiv.innerHTML = "";
-    if (playlist.length === 0) {
-        playlistDiv.innerHTML = '<div style="text-align:center; color:#666; padding:20px; font-size:12px;">Playlist is empty</div>';
-        return;
-    }
     playlist.forEach((url, i) => {
         const div = document.createElement("div");
         div.className = "track-item " + (i === currentIndex ? "current-track" : "");
-        div.innerHTML = `<span>${i + 1}. ${getTrackName(url)}</span> <span class="remove-track-btn" onclick="event.stopPropagation(); removeTrack(${i})">✖</span>`;
+        div.textContent = `${i + 1}. ${getTrackName(url)}`;
         div.onclick = () => playFromIndex(i);
         playlistDiv.appendChild(div);
     });
 }
 
-function removeTrack(index) {
-    playlist.splice(index, 1);
-    if (currentIndex === index) currentIndex = -1;
-    else if (currentIndex > index) currentIndex--;
-    renderPlaylist();
-    savePlaylist();
-}
-
 function getTrackName(url) {
-    return decodeURIComponent(url.split('/').pop().split('?')[0].split('#')[0] || url.split('v=')[1]?.split('&')[0]?.slice(0,30) || 'Unknown Track');
-}
-
-function getYouTubeID(url) {
-    return url.split("v=")[1]?.split("&")[0] || url.split("youtu.be/")[1]?.split("?")[0] || null;
+    return decodeURIComponent(url.split('/').pop().split('?')[0].split('#')[0] || 
+           url.split('v=')[1]?.split('&')[0]?.slice(0,30) || 
+           'Unknown Track');
 }
 
 function playFromIndex(index) {
@@ -629,16 +564,20 @@ function playFromIndex(index) {
 
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         youtubePlayer.style.display = "block";
-        youtubePlayer.src = `https://www.youtube.com/embed/${getYouTubeID(url)}?autoplay=1&rel=0`;
+        let videoId = url.split("v=")[1]?.split("&")[0] || url.split("youtu.be/")[1]?.split("?")[0];
+        youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
     } else if (url.match(/\.(mp4|webm|ogg|mkv)$/i)) {
         videoPlayer.style.display = "block";
-        videoPlayer.src = url; videoPlayer.play().catch(() => {});
+        videoPlayer.src = url;
+        videoPlayer.play().catch(() => {});
     } else {
         audioPlayer.style.display = "block";
-        audioPlayer.src = url; audioPlayer.play().catch(() => {});
+        audioPlayer.src = url;
+        audioPlayer.play().catch(() => {});
         initVisualizer();
     }
     renderPlaylist();
+    savePlaylist();
 }
 
 function playMedia() { if (currentIndex === -1 && playlist.length > 0) playFromIndex(0); else { audioPlayer?.play(); videoPlayer?.play(); } }
@@ -648,73 +587,54 @@ function prevTrack() { if (playlist.length === 0) return; let prev = (currentInd
 function toggleRepeat() { repeat = !repeat; document.getElementById("repeatBtn").innerHTML = `🔁 ${repeat ? 'ON' : 'OFF'}`; }
 function setVolume(v) { audioPlayer.volume = v; videoPlayer.volume = v; }
 function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); }
-function removeMedia() { removeTrack(currentIndex); }
+function removeMedia() { if (currentIndex > -1) { playlist.splice(currentIndex, 1); currentIndex = Math.min(currentIndex, playlist.length - 1); renderPlaylist(); savePlaylist(); } }
 function shufflePlaylist() { for (let i = playlist.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [playlist[i], playlist[j]] = [playlist[j], playlist[i]]; } renderPlaylist(); savePlaylist(); }
 
 function initVisualizer() {
     if (audioCtx) return;
     try {
-        audioCtx = new AudioContext(); analyser = audioCtx.createAnalyser();
+        audioCtx = new AudioContext();
+        analyser = audioCtx.createAnalyser();
         source = audioCtx.createMediaElementSource(audioPlayer);
-        source.connect(analyser); analyser.connect(audioCtx.destination); analyser.fftSize = 128;
-        const bufferLength = analyser.frequencyBinCount; const dataArray = new Uint8Array(bufferLength);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        analyser.fftSize = 128;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
         function draw() { requestAnimationFrame(draw); analyser.getByteFrequencyData(dataArray); ctx.clearRect(0, 0, canvas.width, canvas.height); const barWidth = (canvas.width / bufferLength) * 2.5; let x = 0; for (let i = 0; i < bufferLength; i++) { let barHeight = (dataArray[i] / 255) * canvas.height * 0.8; ctx.fillStyle = `hsl(${i/bufferLength*360},70%,50%)`; ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight); x += barWidth + 1; } }; draw();
     } catch(e) {}
 }
 
-/* --- EXPORT PLAYLIST (PDF/DOCS) --- */
-async function exportPlaylist() {
-    if (playlist.length === 0) return alert("Playlist is empty!");
-    
-    const exportContainer = document.getElementById('exportContainer');
-    if (!exportContainer) return;
-    exportContainer.innerHTML = ''; 
-
-    let htmlContent = '';
-    for (let i = 0; i < playlist.length; i++) {
-        const url = playlist[i];
-        const ytId = getYouTubeID(url);
-        let thumbUrl = 'https://via.placeholder.com/160x90/333/666?text=Audio';
-        
-        if (ytId) thumbUrl = `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`;
-
-        htmlContent += `
-            <div class="export-card">
-                <img src="${thumbUrl}">
-                <div class="export-info">
-                    <h2>${i+1}. ${getTrackName(url)}</h2>
-                    <a href="${url}">${url}</a>
-                </div>
-            </div>
-        `;
-    }
-
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html><head><title>ZeroDays Playlist</title><style>
-            body { font-family: Arial, sans-serif; padding: 40px; color: #000; }
-            .export-card { display: flex; gap: 20px; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-            .export-card img { width: 160px; height: 90px; object-fit: cover; border-radius: 8px; background: #eee; }
-            .export-info h2 { font-size: 18px; margin-bottom: 10px; color: #222; }
-            .export-info a { color: #0066cc; font-size: 12px; word-break: break-all; }
-        </style></head><body>
-            <h1 style="text-align:center; margin-bottom:30px;">ZeroDays Playlist Export</h1>
-            ${htmlContent}
-        </body></html>
-    `);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 1000);
-}
-
 document.addEventListener("dragover", e => e.preventDefault());
-document.addEventListener("drop", e => { e.preventDefault(); const url = e.dataTransfer.getData("text"); if (url) addMedia(url); });
+document.addEventListener("drop", e => {
+    e.preventDefault();
+    const url = e.dataTransfer.getData("text");
+    if (url) addMedia(url);
+});
+
+/* --- PWA INSTALL --- */
+let deferredPrompt;
+document.getElementById('installBtn').onclick = async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+    }
+};
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
 
 /* --- INIT --- */
 window.addEventListener('load', () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    loadGuestPlaylist();
-    updateSettingsUI();
+    
+    // Attempt to load previous session automatically
+    loadSession();
+    
+    // If no active session, load guest playlist
+    if (!currentUser) {
+        loadGuestPlaylist();
+    }
 });
 </script>
 </body>
