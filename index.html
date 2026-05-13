@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,8 +9,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
     
-    <!-- Netlify Identity Widget - Free Open Source GitHub OAuth Handler -->
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <!-- Auth0 SPA SDK - Used to securely parse Vercel OIDC JWT Tokens -->
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -180,10 +180,10 @@
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
-            <!-- GITHUB SSO LOGIN -->
+            <!-- GITHUB SSO VIA VERCEL OIDC -->
             <div id="ssoWrapper" style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">1-CLICK ACCESS (NO API KEY REQUIRED)</div>
-                <button class="sso-btn" onclick="loginWithGitHub()">
+                <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">1-CLICK ACCESS (POWERED BY VERCEL)</div>
+                <button class="sso-btn" onclick="loginWithGitHubVercel()">
                     <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
                     Sign in with GitHub
                 </button>
@@ -272,21 +272,22 @@
 </div>
 
 <footer>
-    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • OPEN SOURCE GITHUB SSO • NO API KEYS
+    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • VERCEL OIDC SSO • NO API KEYS
 </footer>
 
 <script>
 /* =============================================================================
-   GLOBAL ACCOUNT SYSTEM - OPEN SOURCE GITHUB SSO (NO API KEYS)
+   GLOBAL ACCOUNT SYSTEM - VERCEL OIDC GITHUB SSO (NO API KEYS)
    ============================================================================= */
 
 let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
 let repeat = false;
+let auth0Client = null;
 
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
-const USERS_KEY = 'zd_users_global_v5';
+const USERS_KEY = 'zd_users_global_v6';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -296,42 +297,56 @@ const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
 let audioCtx, analyser, source;
 
-/* --- GITHUB SSO VIA NETLIFY IDENTITY --- */
-function loginWithGitHub() {
-    // Opens the official GitHub login popup securely without needing your own backend
-    netlifyIdentity.open('login');
+/* --- GITHUB SSO VIA VERCEL OIDC --- */
+async function initializeVercelAuth() {
+    auth0Client = await auth0.createAuth0Client({
+        domain: "oidc.vercel.com",
+        client_id: window.location.hostname, // Vercel uses your deployment domain as the client ID
+        authorizationParams: {
+            redirect_uri: window.location.origin + window.location.pathname
+        }
+    });
 }
 
-// Listen for successful GitHub logins
-netlifyIdentity.on('login', (user) => {
-    const email = user.email.toLowerCase();
-    const username = user.user_metadata.full_name || user.user_metadata.name || email.split('@')[0];
-    const avatar = user.user_metadata.avatar_url || null;
+async function loginWithGitHubVercel() {
+    if (!auth0Client) await initializeVercelAuth();
+    await auth0Client.loginWithPopup({
+        authorizationParams: {
+            connection: 'github' // Forces Vercel OIDC to use GitHub
+        }
+    });
+    await processVercelLogin();
+}
 
-    const users = loadUsersDB();
-    if (!users[email]) {
-        users[email] = { username: username, password: 'GITHUB_AUTH', avatar: avatar };
-        saveUsersDB(users);
-    } else {
-        users[email].username = username;
-        users[email].avatar = avatar;
-        saveUsersDB(users);
+async function processVercelLogin() {
+    try {
+        if (!auth0Client) await initializeVercelAuth();
+        
+        const claims = await auth0Client.getIdTokenClaims();
+        if (!claims) return;
+
+        const email = claims.email.toLowerCase();
+        const username = claims.nickname || claims.name || email.split('@')[0];
+        const avatar = claims.picture || null;
+
+        const users = loadUsersDB();
+        if (!users[email]) {
+            users[email] = { username: username, password: 'VERCEL_GITHUB_AUTH', avatar: avatar };
+            saveUsersDB(users);
+        } else {
+            users[email].username = username;
+            users[email].avatar = avatar;
+            saveUsersDB(users);
+        }
+
+        currentUser = { email, username: users[email].username, avatar: users[email].avatar };
+        updateAuthUI();
+        loadGlobalPlaylist();
+        showSyncStatus('✅ Logged in via Vercel/GitHub - Playlist synced globally', 'synced');
+    } catch (e) {
+        console.log("Vercel Auth processing error:", e);
     }
-
-    currentUser = { email, username: users[email].username, avatar: users[email].avatar };
-    updateAuthUI();
-    loadGlobalPlaylist();
-    showSyncStatus('✅ Logged in via GitHub - Playlist synced globally', 'synced');
-    
-    // Close the widget after login
-    netlifyIdentity.close();
-});
-
-netlifyIdentity.on('logout', () => {
-    currentUser = null;
-    updateAuthUI();
-    loadGuestPlaylist();
-});
+}
 
 /* --- ENCRYPTION & STORAGE UTILS --- */
 function simpleEncrypt(text, key) {
@@ -405,7 +420,7 @@ function loginUser() {
     const users = loadUsersDB();
     const user = users[email];
     
-    if (!user || user.password === 'GITHUB_AUTH') {
+    if (!user || user.password === 'VERCEL_GITHUB_AUTH') {
         alert('❌ Account not found or uses GitHub SSO Login.');
         return;
     }
@@ -443,15 +458,13 @@ function resetPassword() {
     showTab('login');
 }
 
-function logoutUser() {
-    // Also log out of the GitHub SSO session
-    if (window.netlifyIdentity && netlifyIdentity.currentUser()) {
-        netlifyIdentity.logout();
-    } else {
-        currentUser = null;
-        updateAuthUI();
-        loadGuestPlaylist();
+async function logoutUser() {
+    if (auth0Client) {
+        try { await auth0Client.logout(); } catch(e) {}
     }
+    currentUser = null;
+    updateAuthUI();
+    loadGuestPlaylist();
 }
 
 function showTab(tab) {
@@ -629,10 +642,21 @@ document.getElementById('installBtn').onclick = async () => {
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
 
 /* --- INIT --- */
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     loadGuestPlaylist();
+    
+    // Initialize Vercel Auth on load
+    await initializeVercelAuth();
+    
+    // Check if returning from Vercel GitHub Login redirect
+    const query = window.location.search;
+    if (query.includes("code=") && query.includes("state=")) {
+        await processVercelLogin();
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 });
 </script>
 </body>
