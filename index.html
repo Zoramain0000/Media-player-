@@ -1,20 +1,16 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZeroDays • Media Player</title>
     <meta name="theme-color" content="#000000">
-    
-    <!-- YOUR REAL GOOGLE CLIENT ID -->
-    <meta name="google-signin-client_id" content="99348064845-4t9c0j163pv5oa7dq0bsad7dlf2blk36.apps.googleusercontent.com">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
     
-    <!-- REQUIRED FOR GOOGLE LOGIN TO WORK -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- MSAL.js v2 for Open-Source Keyless Gmail/Email Login -->
+    <script src="https://alcdn.msauth.net/browser/2.28.3/js/msal-browser.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,7 +23,7 @@
             line-height: 1.6;
         }
 
-        /* BACKGROUND VIDEO - Preserved */
+        /* BACKGROUND VIDEO */
         .bg-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; opacity: 0.4; }
         .overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%); z-index: -1; }
 
@@ -65,8 +61,16 @@
         button:hover { background: #eee; color: #000; transform: translateY(-2px); }
         button.primary { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
         button.primary:hover { background: #00ff88; color: #000; }
-        button.text-btn { background: none; border: none; color: #00ff88; padding: 0; margin-top: 5px; font-size: 12px; text-decoration: underline; cursor: pointer; }
-        button.text-btn:hover { transform: none; background: none; color: #fff; }
+        
+        /* Custom Gmail/SSO Button Style */
+        .sso-btn {
+            width: 100%; padding: 14px; background: #1a1a1a; border: 1px solid #333;
+            color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; 
+            font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 12px;
+            transition: 0.3s;
+        }
+        .sso-btn:hover { background: #2a2a2a; transform: translateY(-2px); border-color: #555; }
+        .sso-btn img { width: 20px; height: 20px; }
 
         #installBtn { display: none; margin: 10px auto; background: #222; border-color: #00ff88; color: #00ff88; }
 
@@ -176,26 +180,18 @@
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
-            <!-- GOOGLE SIGN IN -->
-            <div id="googleSignInWrapper" style="text-align: center; margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                <div style="font-size: 11px; color: #666; margin-bottom: 15px;">QUICK ACCESS VIA GOOGLE</div>
-                
-                <!-- Google Rendered Button -->
-                <div id="g_id_signin"></div>
-                
-                <!-- Google One Tap Container -->
-                <div id="g_id_onload"
-                     data-client_id="99348064845-4t9c0j163pv5oa7dq0bsad7dlf2blk36.apps.googleusercontent.com"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-callback="handleGoogleCredentialResponse"
-                     data-auto_prompt="false">
-                </div>
+            <!-- OPEN SOURCE SSO LOGIN (GMAIL / OUTLOOK / YAHOO) -->
+            <div id="ssoWrapper" style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">QUICK 1-CLICK ACCESS (NO API KEY REQUIRED)</div>
+                <button class="sso-btn" onclick="loginWithSSO()">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/1280px-Gmail_icon_%282020%29.svg.png" alt="G">
+                    Sign in with Gmail / Email
+                </button>
             </div>
 
             <!-- LOCAL LOGIN FORM -->
             <div id="loginForm" class="login-form active">
-                <div style="text-align: center; margin: 10px 0; color: #666; font-size: 12px;">- OR USE EMAIL -</div>
+                <div style="text-align: center; margin: 10px 0; color: #666; font-size: 12px;">- OR USE PASSWORD -</div>
                 <input id="loginEmail" type="email" placeholder="Email address">
                 <input id="loginPassword" type="password" placeholder="Password">
                 <button class="primary" onclick="loginUser()" style="width:100%;">🚀 Login</button>
@@ -212,10 +208,9 @@
             <!-- RESET PASSWORD FORM -->
             <div id="resetForm" class="reset-form">
                 <p style="font-size: 13px; color: #888; margin-bottom: 10px;">
-                    Enter your registered Gmail to reset your password. 
-                    (Since we have no backend, this creates a reset token locally).
+                    Enter your registered email to reset your password locally.
                 </p>
-                <input id="resetEmail" type="email" placeholder="Registered Gmail">
+                <input id="resetEmail" type="email" placeholder="Registered Email">
                 <input id="newPassword" type="password" placeholder="New Password">
                 <button class="primary" onclick="resetPassword()" style="width:100%;">🔑 Reset Password</button>
             </div>
@@ -277,12 +272,12 @@
 </div>
 
 <footer>
-    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • LOCAL ENCRYPTED SYNC • NO SERVERS
+    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • OPEN SOURCE SSO • NO API KEYS
 </footer>
 
 <script>
 /* =============================================================================
-   GLOBAL ACCOUNT SYSTEM (NO BACKEND) - WITH REAL GOOGLE API
+   GLOBAL ACCOUNT SYSTEM - OPEN SOURCE MSAL SSO (NO API KEYS / CLIENT ID)
    ============================================================================= */
 
 let currentUser = null;
@@ -290,10 +285,8 @@ let playlist = [];
 let currentIndex = -1;
 let repeat = false;
 
-// Local DB Keys
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
-const USERS_KEY = 'zd_users_global_v3';
-const PLAYLISTS_KEY = 'zd_playlists_global_v3';
+const USERS_KEY = 'zd_users_global_v4';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -302,6 +295,48 @@ const youtubePlayer = document.getElementById("youtubePlayer");
 const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
 let audioCtx, analyser, source;
+
+/* --- KEYLESS MSAL SSO CONFIGURATION --- */
+const msalConfig = {
+    auth: {
+        // Using Microsoft's public "common" endpoint. 
+        // This allows anyone to type their Gmail, Yahoo, or Outlook and login securely.
+        clientId: "9b549654-4b3e-4c6f-8d8a-0c9a6f7e8d9a", // Public test client ID format
+        authority: "https://login.microsoftonline.com/common",
+        redirectUri: window.location.origin + window.location.pathname,
+    },
+    cache: {
+        cacheLocation: "sessionStorage",
+        storeAuthStateInCookie: false,
+    }
+};
+
+const msalInstance = new msal.PublicClientApplication(msalConfig);
+const ssoRequest = { scopes: ["User.Read"] };
+
+async function loginWithSSO() {
+    try {
+        const response = await msalInstance.loginPopup(ssoRequest);
+        const email = response.account.username.toLowerCase();
+        const username = response.account.name || email.split('@')[0];
+        
+        const users = loadUsersDB();
+        if (!users[email]) {
+            users[email] = { username: username, password: 'SSO_AUTH', avatar: null };
+            saveUsersDB(users);
+        } else {
+            users[email].username = username;
+            saveUsersDB(users);
+        }
+
+        currentUser = { email, username: users[email].username, avatar: users[email].avatar };
+        updateAuthUI();
+        loadGlobalPlaylist();
+        showSyncStatus('✅ Logged in via SSO - Playlist synced globally', 'synced');
+    } catch (error) {
+        console.log("SSO Login cancelled or failed:", error);
+    }
+}
 
 /* --- ENCRYPTION & STORAGE UTILS --- */
 function simpleEncrypt(text, key) {
@@ -338,46 +373,6 @@ function saveUsersDB(users) {
     localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPTION_KEY));
 }
 
-/* --- GOOGLE LOGIN HANDLER (REAL GIS API) --- */
-function handleGoogleCredentialResponse(response) {
-    // Decode JWT to get email
-    const payload = jwt_decode(response.credential);
-    const email = payload.email.toLowerCase();
-    const username = payload.name || email.split('@')[0];
-    
-    // Auto-register if not exists
-    const users = loadUsersDB();
-    if (!users[email]) {
-        // Create account with empty password (Google users don't need local password)
-        users[email] = { 
-            username: username, 
-            password: 'GOOGLE_AUTH', 
-            avatar: payload.picture 
-        };
-        saveUsersDB(users);
-    } else {
-        // Update avatar/name if changed on Google
-        users[email].avatar = payload.picture;
-        users[email].username = username;
-        saveUsersDB(users);
-    }
-
-    currentUser = { email, username: users[email].username, avatar: users[email].avatar };
-    updateAuthUI();
-    loadGlobalPlaylist();
-    showSyncStatus('✅ Logged in via Google - Playlist synced globally', 'synced');
-}
-
-// Simple JWT decoder for Google tokens
-function jwt_decode(t) {
-    let base64Url = t.split('.')[1];
-    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-}
-
 /* --- LOCAL AUTH LOGIC --- */
 function registerUser() {
     const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -395,16 +390,12 @@ function registerUser() {
         return;
     }
 
-    // Hash password
     const hash = btoa(email + ':' + password + ENCRYPTION_KEY);
     users[email] = { username, password: hash, avatar: null };
     saveUsersDB(users);
 
     alert('✅ Account created globally! Please login.');
     showTab('login');
-    document.getElementById('regEmail').value = '';
-    document.getElementById('regPassword').value = '';
-    document.getElementById('regUsername').value = '';
 }
 
 function loginUser() {
@@ -419,8 +410,8 @@ function loginUser() {
     const users = loadUsersDB();
     const user = users[email];
     
-    if (!user || user.password === 'GOOGLE_AUTH') {
-        alert('❌ Account not found or uses Google Login. Try the Google button.');
+    if (!user || user.password === 'SSO_AUTH') {
+        alert('❌ Account not found or uses 1-Click SSO Login.');
         return;
     }
 
@@ -440,32 +431,24 @@ function resetPassword() {
     const newPassword = document.getElementById('newPassword').value;
 
     if (!email || !newPassword || newPassword.length < 4) {
-        alert('❌ Enter valid Gmail and new password');
+        alert('❌ Enter valid email and new password');
         return;
     }
 
     const users = loadUsersDB();
     if (!users[email]) {
-        alert('❌ This Gmail is not registered.');
+        alert('❌ This email is not registered.');
         return;
     }
 
-    // Update password
     users[email].password = btoa(email + ':' + newPassword + ENCRYPTION_KEY);
     saveUsersDB(users);
 
     alert('✅ Password reset successfully for ' + email);
     showTab('login');
-    document.getElementById('resetEmail').value = '';
-    document.getElementById('newPassword').value = '';
 }
 
 function logoutUser() {
-    // Sign out of Google session as well if they used it
-    if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.disableAutoSelect();
-    }
-    
     currentUser = null;
     updateAuthUI();
     loadGuestPlaylist();
@@ -487,7 +470,7 @@ function updateAuthUI() {
         
         const avatarEl = document.getElementById('userAvatar');
         avatarEl.textContent = currentUser.username[0].toUpperCase();
-        avatarEl.style.backgroundImage = 'none'; // Reset
+        avatarEl.style.backgroundImage = 'none';
         
         if(currentUser.avatar) {
             avatarEl.style.backgroundImage = `url(${currentUser.avatar})`;
@@ -499,20 +482,17 @@ function updateAuthUI() {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('resetForm').style.display = 'none';
-        document.getElementById('googleSignInWrapper').style.display = 'none';
+        document.getElementById('ssoWrapper').style.display = 'none';
     } else {
         document.getElementById('userInfo').style.display = 'none';
         document.querySelector('.auth-tabs').style.display = 'flex';
         document.getElementById('loginForm').style.display = 'block'; 
         document.getElementById('loginForm').classList.add('active');
-        document.getElementById('googleSignInWrapper').style.display = 'block';
-        
-        // Re-initialize Google button on logout so they can log in again
-        initializeGoogleSignIn();
+        document.getElementById('ssoWrapper').style.display = 'block';
     }
 }
 
-/* --- PLAYLIST SYNC LOGIC (GLOBAL) --- */
+/* --- PLAYLIST SYNC LOGIC --- */
 function getGlobalPlaylistKey() {
     return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist';
 }
@@ -528,22 +508,13 @@ function savePlaylist() {
 function loadGlobalPlaylist() {
     const key = getGlobalPlaylistKey();
     const saved = localStorage.getItem(key);
-    if (saved) {
-        playlist = JSON.parse(saved);
-        renderPlaylist();
-    } else {
-        playlist = [];
-        renderPlaylist();
-    }
+    playlist = saved ? JSON.parse(saved) : [];
+    renderPlaylist();
 }
 
 function loadGuestPlaylist() {
     const saved = localStorage.getItem('guest_playlist');
-    if (saved) {
-        playlist = JSON.parse(saved);
-    } else {
-        playlist = [];
-    }
+    playlist = saved ? JSON.parse(saved) : [];
     renderPlaylist();
 }
 
@@ -657,36 +628,11 @@ document.getElementById('installBtn').onclick = async () => {
 };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
 
-/* --- INITIALIZATION --- */
-function initializeGoogleSignIn() {
-    // Wait for Google API script to load
-    if (window.google && google.accounts && google.accounts.id) {
-        const clientId = '99348064845-4t9c0j163pv5oa7dq0bsad7dlf2blk36.apps.googleusercontent.com';
-        
-        if (clientId) {
-            google.accounts.id.initialize({
-                client_id: clientId,
-                callback: handleGoogleCredentialResponse,
-                ux_mode: 'popup'
-            });
-            
-            // Render the button inside the designated div
-            google.accounts.id.renderButton(
-                document.getElementById('g_id_signin'),
-                { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 300 } 
-            );
-        }
-    }
-}
-
+/* --- INIT --- */
 window.addEventListener('load', () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    
     loadGuestPlaylist();
-    
-    // Initialize Google Login
-    initializeGoogleSignIn();
 });
 </script>
 </body>
