@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,8 +9,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
     
-    <!-- MSAL.js v2 for Open-Source Keyless Gmail/Email Login -->
-    <script src="https://alcdn.msauth.net/browser/2.28.3/js/msal-browser.min.js"></script>
+    <!-- Netlify Identity Widget - Free Open Source GitHub OAuth Handler -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -62,15 +62,15 @@
         button.primary { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
         button.primary:hover { background: #00ff88; color: #000; }
         
-        /* Custom Gmail/SSO Button Style */
+        /* Custom GitHub SSO Button Style */
         .sso-btn {
-            width: 100%; padding: 14px; background: #1a1a1a; border: 1px solid #333;
+            width: 100%; padding: 14px; background: #161b22; border: 1px solid #30363d;
             color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; 
             font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 12px;
             transition: 0.3s;
         }
-        .sso-btn:hover { background: #2a2a2a; transform: translateY(-2px); border-color: #555; }
-        .sso-btn img { width: 20px; height: 20px; }
+        .sso-btn:hover { background: #21262d; transform: translateY(-2px); border-color: #8b949e; }
+        .sso-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
         #installBtn { display: none; margin: 10px auto; background: #222; border-color: #00ff88; color: #00ff88; }
 
@@ -180,12 +180,12 @@
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
-            <!-- OPEN SOURCE SSO LOGIN (GMAIL / OUTLOOK / YAHOO) -->
+            <!-- GITHUB SSO LOGIN -->
             <div id="ssoWrapper" style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">QUICK 1-CLICK ACCESS (NO API KEY REQUIRED)</div>
-                <button class="sso-btn" onclick="loginWithSSO()">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/1280px-Gmail_icon_%282020%29.svg.png" alt="G">
-                    Sign in with Gmail / Email
+                <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">1-CLICK ACCESS (NO API KEY REQUIRED)</div>
+                <button class="sso-btn" onclick="loginWithGitHub()">
+                    <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                    Sign in with GitHub
                 </button>
             </div>
 
@@ -272,12 +272,12 @@
 </div>
 
 <footer>
-    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • OPEN SOURCE SSO • NO API KEYS
+    ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • OPEN SOURCE GITHUB SSO • NO API KEYS
 </footer>
 
 <script>
 /* =============================================================================
-   GLOBAL ACCOUNT SYSTEM - OPEN SOURCE MSAL SSO (NO API KEYS / CLIENT ID)
+   GLOBAL ACCOUNT SYSTEM - OPEN SOURCE GITHUB SSO (NO API KEYS)
    ============================================================================= */
 
 let currentUser = null;
@@ -286,7 +286,7 @@ let currentIndex = -1;
 let repeat = false;
 
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
-const USERS_KEY = 'zd_users_global_v4';
+const USERS_KEY = 'zd_users_global_v5';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -296,47 +296,42 @@ const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
 let audioCtx, analyser, source;
 
-/* --- KEYLESS MSAL SSO CONFIGURATION --- */
-const msalConfig = {
-    auth: {
-        // Using Microsoft's public "common" endpoint. 
-        // This allows anyone to type their Gmail, Yahoo, or Outlook and login securely.
-        clientId: "9b549654-4b3e-4c6f-8d8a-0c9a6f7e8d9a", // Public test client ID format
-        authority: "https://login.microsoftonline.com/common",
-        redirectUri: window.location.origin + window.location.pathname,
-    },
-    cache: {
-        cacheLocation: "sessionStorage",
-        storeAuthStateInCookie: false,
-    }
-};
-
-const msalInstance = new msal.PublicClientApplication(msalConfig);
-const ssoRequest = { scopes: ["User.Read"] };
-
-async function loginWithSSO() {
-    try {
-        const response = await msalInstance.loginPopup(ssoRequest);
-        const email = response.account.username.toLowerCase();
-        const username = response.account.name || email.split('@')[0];
-        
-        const users = loadUsersDB();
-        if (!users[email]) {
-            users[email] = { username: username, password: 'SSO_AUTH', avatar: null };
-            saveUsersDB(users);
-        } else {
-            users[email].username = username;
-            saveUsersDB(users);
-        }
-
-        currentUser = { email, username: users[email].username, avatar: users[email].avatar };
-        updateAuthUI();
-        loadGlobalPlaylist();
-        showSyncStatus('✅ Logged in via SSO - Playlist synced globally', 'synced');
-    } catch (error) {
-        console.log("SSO Login cancelled or failed:", error);
-    }
+/* --- GITHUB SSO VIA NETLIFY IDENTITY --- */
+function loginWithGitHub() {
+    // Opens the official GitHub login popup securely without needing your own backend
+    netlifyIdentity.open('login');
 }
+
+// Listen for successful GitHub logins
+netlifyIdentity.on('login', (user) => {
+    const email = user.email.toLowerCase();
+    const username = user.user_metadata.full_name || user.user_metadata.name || email.split('@')[0];
+    const avatar = user.user_metadata.avatar_url || null;
+
+    const users = loadUsersDB();
+    if (!users[email]) {
+        users[email] = { username: username, password: 'GITHUB_AUTH', avatar: avatar };
+        saveUsersDB(users);
+    } else {
+        users[email].username = username;
+        users[email].avatar = avatar;
+        saveUsersDB(users);
+    }
+
+    currentUser = { email, username: users[email].username, avatar: users[email].avatar };
+    updateAuthUI();
+    loadGlobalPlaylist();
+    showSyncStatus('✅ Logged in via GitHub - Playlist synced globally', 'synced');
+    
+    // Close the widget after login
+    netlifyIdentity.close();
+});
+
+netlifyIdentity.on('logout', () => {
+    currentUser = null;
+    updateAuthUI();
+    loadGuestPlaylist();
+});
 
 /* --- ENCRYPTION & STORAGE UTILS --- */
 function simpleEncrypt(text, key) {
@@ -410,8 +405,8 @@ function loginUser() {
     const users = loadUsersDB();
     const user = users[email];
     
-    if (!user || user.password === 'SSO_AUTH') {
-        alert('❌ Account not found or uses 1-Click SSO Login.');
+    if (!user || user.password === 'GITHUB_AUTH') {
+        alert('❌ Account not found or uses GitHub SSO Login.');
         return;
     }
 
@@ -449,9 +444,14 @@ function resetPassword() {
 }
 
 function logoutUser() {
-    currentUser = null;
-    updateAuthUI();
-    loadGuestPlaylist();
+    // Also log out of the GitHub SSO session
+    if (window.netlifyIdentity && netlifyIdentity.currentUser()) {
+        netlifyIdentity.logout();
+    } else {
+        currentUser = null;
+        updateAuthUI();
+        loadGuestPlaylist();
+    }
 }
 
 function showTab(tab) {
