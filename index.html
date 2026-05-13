@@ -1,11 +1,14 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZeroDays • Media Player</title>
     <meta name="theme-color" content="#000000">
-    <meta name="google-signin-client_id" content="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">
+    
+    <!-- YOUR REAL GOOGLE CLIENT ID -->
+    <meta name="google-signin-client_id" content="99348064845-4t9c0j163pv5oa7dq0bsad7dlf2blk36.apps.googleusercontent.com">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
@@ -82,9 +85,6 @@
         .login-form, .register-form, .reset-form { display: none; }
         .login-form.active, .register-form.active, .reset-form.active { display: block; }
 
-        /* Google Button Style Override to match theme */
-        .g_id_signin { margin: 10px 0; }
-
         .user-info { 
             display: flex; align-items: center; gap: 12px; margin-bottom: 15px; 
             background: rgba(0,255,136,0.15); padding: 15px; border-radius: 10px;
@@ -95,6 +95,7 @@
             background: linear-gradient(135deg, #00ff88, #00cc6a); 
             display: flex; align-items: center; justify-content: center;
             font-weight: bold; color: #000; font-size: 18px;
+            background-size: cover; background-position: center;
         }
         .logout-btn { 
             background: rgba(255,68,68,0.2); border-color: #ff4444; 
@@ -175,25 +176,20 @@
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
-            <!-- GOOGLE SIGN IN (Always Visible) -->
-            <div style="text-align: center; margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                <div style="font-size: 11px; color: #666; margin-bottom: 10px;">QUICK ACCESS</div>
+            <!-- GOOGLE SIGN IN -->
+            <div id="googleSignInWrapper" style="text-align: center; margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 15px;">QUICK ACCESS VIA GOOGLE</div>
                 
-                <!-- Google Identity Component -->
+                <!-- Google Rendered Button -->
+                <div id="g_id_signin"></div>
+                
+                <!-- Google One Tap Container -->
                 <div id="g_id_onload"
-                     data-client_id="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"
+                     data-client_id="99348064845-4t9c0j163pv5oa7dq0bsad7dlf2blk36.apps.googleusercontent.com"
                      data-context="signin"
                      data-ux_mode="popup"
                      data-callback="handleGoogleCredentialResponse"
                      data-auto_prompt="false">
-                </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="rectangular"
-                     data-theme="filled_black"
-                     data-text="signin_with"
-                     data-size="large"
-                     data-logo_alignment="left">
                 </div>
             </div>
 
@@ -286,7 +282,7 @@
 
 <script>
 /* =============================================================================
-   GLOBAL ACCOUNT SYSTEM (NO BACKEND)
+   GLOBAL ACCOUNT SYSTEM (NO BACKEND) - WITH REAL GOOGLE API
    ============================================================================= */
 
 let currentUser = null;
@@ -342,7 +338,7 @@ function saveUsersDB(users) {
     localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPTION_KEY));
 }
 
-/* --- GOOGLE LOGIN HANDLER --- */
+/* --- GOOGLE LOGIN HANDLER (REAL GIS API) --- */
 function handleGoogleCredentialResponse(response) {
     // Decode JWT to get email
     const payload = jwt_decode(response.credential);
@@ -352,7 +348,7 @@ function handleGoogleCredentialResponse(response) {
     // Auto-register if not exists
     const users = loadUsersDB();
     if (!users[email]) {
-        // Create account with empty password (Google users don't need password)
+        // Create account with empty password (Google users don't need local password)
         users[email] = { 
             username: username, 
             password: 'GOOGLE_AUTH', 
@@ -360,8 +356,9 @@ function handleGoogleCredentialResponse(response) {
         };
         saveUsersDB(users);
     } else {
-        // Update avatar if changed
+        // Update avatar/name if changed on Google
         users[email].avatar = payload.picture;
+        users[email].username = username;
         saveUsersDB(users);
     }
 
@@ -464,6 +461,11 @@ function resetPassword() {
 }
 
 function logoutUser() {
+    // Sign out of Google session as well if they used it
+    if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+    }
+    
     currentUser = null;
     updateAuthUI();
     loadGuestPlaylist();
@@ -473,7 +475,6 @@ function showTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.login-form, .register-form, .reset-form').forEach(f => f.classList.remove('active'));
     
-    // Find button that was clicked (logic simplified)
     const index = tab === 'login' ? 0 : tab === 'register' ? 1 : 2;
     document.querySelectorAll('.auth-tab')[index].classList.add('active');
     document.getElementById(tab + 'Form').classList.add('active');
@@ -483,11 +484,14 @@ function updateAuthUI() {
     if (currentUser) {
         document.getElementById('userName').textContent = currentUser.username;
         document.getElementById('userEmail').textContent = currentUser.email;
-        document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
+        
+        const avatarEl = document.getElementById('userAvatar');
+        avatarEl.textContent = currentUser.username[0].toUpperCase();
+        avatarEl.style.backgroundImage = 'none'; // Reset
+        
         if(currentUser.avatar) {
-            document.getElementById('userAvatar').style.backgroundImage = `url(${currentUser.avatar})`;
-            document.getElementById('userAvatar').style.backgroundSize = 'cover';
-            document.getElementById('userAvatar').textContent = '';
+            avatarEl.style.backgroundImage = `url(${currentUser.avatar})`;
+            avatarEl.textContent = '';
         }
         
         document.getElementById('userInfo').style.display = 'block';
@@ -495,19 +499,21 @@ function updateAuthUI() {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('resetForm').style.display = 'none';
-        document.querySelector('.g_id_signin').parentElement.style.display = 'none';
+        document.getElementById('googleSignInWrapper').style.display = 'none';
     } else {
         document.getElementById('userInfo').style.display = 'none';
         document.querySelector('.auth-tabs').style.display = 'flex';
-        document.getElementById('loginForm').classList.add('active'); // Reset to login
-        document.querySelector('.g_id_signin').parentElement.style.display = 'block';
+        document.getElementById('loginForm').style.display = 'block'; 
+        document.getElementById('loginForm').classList.add('active');
+        document.getElementById('googleSignInWrapper').style.display = 'block';
+        
+        // Re-initialize Google button on logout so they can log in again
+        initializeGoogleSignIn();
     }
 }
 
 /* --- PLAYLIST SYNC LOGIC (GLOBAL) --- */
 function getGlobalPlaylistKey() {
-    // If user is logged in, use their email as the key. 
-    // This makes the playlist the SAME for that email on ANY device that loads this page.
     return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist';
 }
 
@@ -651,16 +657,37 @@ document.getElementById('installBtn').onclick = async () => {
 };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
 
-/* --- INIT --- */
+/* --- INITIALIZATION --- */
+function initializeGoogleSignIn() {
+    // Wait for Google API script to load
+    if (window.google && google.accounts && google.accounts.id) {
+        const clientId = '99348064845-4t9c0j163pv5oa7dq0bsad7dlf2blk36.apps.googleusercontent.com';
+        
+        if (clientId) {
+            google.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleGoogleCredentialResponse,
+                ux_mode: 'popup'
+            });
+            
+            // Render the button inside the designated div
+            google.accounts.id.renderButton(
+                document.getElementById('g_id_signin'),
+                { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 300 } 
+            );
+        }
+    }
+}
+
 window.addEventListener('load', () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     
-    // Check if user was previously logged in locally (simulate session persistence)
-    // Since no backend, we check localStorage directly or just start as guest
-    // For this implementation, we start as guest to allow switching accounts easily
     loadGuestPlaylist();
+    
+    // Initialize Google Login
+    initializeGoogleSignIn();
 });
 </script>
 </body>
-</html> added auth/Google/yahoo/etc(others etc).com/permission/ when they wanted to login registered quickly and  save everything on etc features when they i have accounts  even logged in already saved storage etc , even log out the login in  is still saved ,all in one html with css javascript without backend no api key and add real auth source , no ads ,ni demo or mock or fake or realistic no fake no simulator or mock but no generator or mock or fake or realistic no fake no simulator or mock but real powered by
+</html>
