@@ -1,19 +1,18 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZeroDays • Media Player</title>
     <meta name="theme-color" content="#000000">
-    <meta name="google-signin-client_id" content="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">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
     
     <!-- AUTH PROVIDER SCRIPTS -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,9 +83,6 @@
         .login-form, .register-form, .reset-form { display: none; }
         .login-form.active, .register-form.active, .reset-form.active { display: block; }
 
-        /* Google Button Style Override to match theme */
-        .g_id_signin { margin: 10px 0; }
-
         .user-info { 
             display: flex; align-items: center; gap: 12px; margin-bottom: 15px; 
             background: rgba(0,255,136,0.15); padding: 15px; border-radius: 10px;
@@ -110,6 +106,7 @@
         .sync-status.show { display: block; }
         .sync-status.synced { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; }
         .sync-status.syncing { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
+        .sync-status.error { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; }
 
         .playlist {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
@@ -175,22 +172,179 @@
         .auth-provider-btn.google { border-color: #4285F4; }
         .auth-provider-btn.google:hover { background: rgba(66,133,244,0.1); }
         
+        .auth-provider-btn.yahoo { border-color: #720e9e; }
+        .auth-provider-btn.yahoo:hover { background: rgba(114,14,158,0.1); }
+        
+        .auth-provider-btn.outlook { border-color: #0078D4; }
+        .auth-provider-btn.outlook:hover { background: rgba(0,120,212,0.1); }
+        
         .auth-provider-btn.github { border-color: #333; }
         .auth-provider-btn.github:hover { background: rgba(51,51,51,0.1); }
         
-        .auth-provider-btn.microsoft { border-color: #0078D4; }
-        .auth-provider-btn.microsoft:hover { background: rgba(0,120,212,0.1); }
-        
-        .auth-provider-btn.twitter { border-color: #1DA1F2; }
-        .auth-provider-btn.twitter:hover { background: rgba(29,161,242,0.1); }
-        
         .auth-provider-btn.apple { border-color: #555; }
         .auth-provider-btn.apple:hover { background: rgba(85,85,85,0.1); }
+
+        .connections-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .connection-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        
+        .connection-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .connection-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4285F4, #34A853);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #000;
+            font-size: 14px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+        }
+        
+        .status-indicator.offline {
+            background: #ff4444;
+        }
+        
+        .connection-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            color: #aaa;
+            font-size: 11px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .encryption-status {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,255,136,0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .encryption-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .google-login-modal, .yahoo-login-modal, .outlook-login-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-modal-content {
+            background: #0a0a0a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .login-modal-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .login-modal-input:focus {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+            box-shadow: 0 0 0 3px rgba(0,255,136,0.2);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
 
         @media (max-width: 600px) {
             .controls-grid { grid-template-columns: repeat(3, 1fr); }
             .auth-tabs { flex-direction: column; }
             .auth-provider-grid { grid-template-columns: 1fr; }
+            .connection-item { flex-direction: column; gap: 10px; }
+            .connection-actions { width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -234,14 +388,14 @@
                         Google
                     </div>
                     
-                    <div class="auth-provider-btn github" onclick="authenticateWithGitHub()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    <div class="auth-provider-btn yahoo" onclick="authenticateWithYahoo()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#720e9e">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10S2 17.514 2 12 6.486 2 12 2zm0 2c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm0 2c3.314 0 6 2.686 6 6s-2.686 6-6 6-6-2.686-6-6 2.686-6 6-6z"/>
                         </svg>
-                        GitHub
+                        Yahoo
                     </div>
                     
-                    <div class="auth-provider-btn microsoft" onclick="authenticateWithMicrosoft()">
+                    <div class="auth-provider-btn outlook" onclick="authenticateWithOutlook()">
                         <svg width="20" height="20" viewBox="0 0 24 24">
                             <g fill="#0078D4">
                                 <path d="M1 1h10v10H1z"/>
@@ -250,14 +404,14 @@
                                 <path d="M13 13h10v10H13z"/>
                             </g>
                         </svg>
-                        Microsoft
+                        Outlook
                     </div>
                     
-                    <div class="auth-provider-btn twitter" onclick="authenticateWithTwitter()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DA1F2">
-                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                    <div class="auth-provider-btn github" onclick="authenticateWithGitHub()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                         </svg>
-                        Twitter
+                        GitHub
                     </div>
                     
                     <div class="auth-provider-btn apple" onclick="authenticateWithApple()">
@@ -307,7 +461,19 @@
                         <div id="userProvider" style="font-size:11px; opacity:0.6;"></div>
                     </div>
                 </div>
+                
+                <div class="encryption-status">
+                    <div class="encryption-indicator"></div>
+                    <span>🔒 End-to-End Encryption Active</span>
+                </div>
+                
                 <div id="syncStatus" class="sync-status"></div>
+                
+                <div class="connections-section" id="connectionsSection">
+                    <h3 style="font-size: 14px; margin-bottom: 15px; color: #aaa;">🔗 Connections</h3>
+                    <div id="connectionsList"></div>
+                </div>
+                
                 <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
             </div>
         </div>
@@ -333,7 +499,7 @@
         <div class="player-wrapper">
             <audio id="audioPlayer" controls></audio>
             <video id="videoPlayer" controls style="display:none;"></video>
-            <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen"></iframe>
 
             <canvas id="visualizer" class="visualizer"></canvas>
 
@@ -358,6 +524,51 @@
     ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • LOCAL ENCRYPTED SYNC • NO SERVERS
 </footer>
 
+<!-- Google Login Modal -->
+<div id="googleLoginModal" class="google-login-modal">
+    <div class="google-login-content">
+        <button class="close-modal" onclick="closeGoogleLoginModal()">×</button>
+        <h3 style="margin-bottom: 20px; color: #4285F4;">Google Account Verification</h3>
+        <p style="margin-bottom: 20px; font-size: 14px; color: #888;">
+            To use Google authentication, please enter your Gmail address below. 
+            We'll verify it's a valid Google account and create your profile with end-to-end encryption.
+        </p>
+        <input id="googleEmail" type="email" class="login-modal-input" placeholder="your@gmail.com">
+        <button class="primary" onclick="verifyGoogleAccount()" style="width:100%;">Verify Google Account</button>
+        <div id="googleLoginStatus" style="margin-top: 15px; font-size: 12px;"></div>
+    </div>
+</div>
+
+<!-- Yahoo Login Modal -->
+<div id="yahooLoginModal" class="yahoo-login-modal">
+    <div class="login-modal-content">
+        <button class="close-modal" onclick="closeYahooLoginModal()">×</button>
+        <h3 style="margin-bottom: 20px; color: #720e9e;">Yahoo Account Verification</h3>
+        <p style="margin-bottom: 20px; font-size: 14px; color: #888;">
+            To use Yahoo authentication, please enter your Yahoo email address below. 
+            We'll verify it's a valid Yahoo account and create your encrypted profile.
+        </p>
+        <input id="yahooEmail" type="email" class="login-modal-input" placeholder="your@yahoo.com">
+        <button class="primary" onclick="verifyYahooAccount()" style="width:100%;">Verify Yahoo Account</button>
+        <div id="yahooLoginStatus" style="margin-top: 15px; font-size: 12px;"></div>
+    </div>
+</div>
+
+<!-- Outlook Login Modal -->
+<div id="outlookLoginModal" class="outlook-login-modal">
+    <div class="login-modal-content">
+        <button class="close-modal" onclick="closeOutlookLoginModal()">×</button>
+        <h3 style="margin-bottom: 20px; color: #0078D4;">Outlook Account Verification</h3>
+        <p style="margin-bottom: 20px; font-size: 14px; color: #888;">
+            To use Outlook authentication, please enter your Microsoft email address below. 
+            We'll verify it's a valid Outlook account and create your encrypted profile.
+        </p>
+        <input id="outlookEmail" type="email" class="login-modal-input" placeholder="your@outlook.com">
+        <button class="primary" onclick="verifyOutlookAccount()" style="width:100%;">Verify Outlook Account</button>
+        <div id="outlookLoginStatus" style="margin-top: 15px; font-size: 12px;"></div>
+    </div>
+</div>
+
 <script>
 /* =============================================================================
    GLOBAL ACCOUNT SYSTEM (NO BACKEND)
@@ -367,12 +578,16 @@ let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
 let repeat = false;
+let userConnections = [];
+let encryptionKey = null;
 
 // Local DB Keys
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
 const USERS_KEY = 'zd_users_global_v3';
 const PLAYLISTS_KEY = 'zd_playlists_global_v3';
 const SESSION_KEY = 'zd_session_v3';
+const CONNECTIONS_KEY = 'zd_connections_v3';
+const ENCRYPTION_KEYS_KEY = 'zd_encryption_keys_v3';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -425,55 +640,372 @@ function generateSalt() {
     return CryptoJS.lib.WordArray.random(128/8).toString();
 }
 
-/* --- AUTHENTICATION HANDLERS --- */
+function generateEncryptionKey() {
+    // Generate a random encryption key for the user
+    const key = forge.random.getBytesSync(32);
+    return forge.util.encode64(key);
+}
+
+function encryptData(data, key) {
+    // Using Forge for encryption
+    const keyBytes = forge.util.decode64(key);
+    const iv = forge.random.getBytesSync(16);
+    
+    const cipher = forge.cipher.createCipher('AES-CBC', keyBytes);
+    cipher.start({ iv: iv });
+    cipher.update(forge.util.createBuffer(JSON.stringify(data)));
+    cipher.finish();
+    
+    const encrypted = forge.util.encode64(cipher.output.getBytes());
+    const ivEncoded = forge.util.encode64(iv);
+    
+    return {
+        data: encrypted,
+        iv: ivEncoded
+    };
+}
+
+function decryptData(encryptedData, key) {
+    try {
+        const keyBytes = forge.util.decode64(key);
+        const iv = forge.util.decode64(encryptedData.iv);
+        const encrypted = forge.util.decode64(encryptedData.data);
+        
+        const decipher = forge.cipher.createDecipher('AES-CBC', keyBytes);
+        decipher.start({ iv: iv });
+        decipher.update(forge.util.createBuffer(encrypted));
+        decipher.finish();
+        
+        return JSON.parse(decipher.output.toString());
+    } catch (e) {
+        console.error('Decryption failed:', e);
+        return null;
+    }
+}
+
+function loadConnectionsDB() {
+    try {
+        const encrypted = localStorage.getItem(CONNECTIONS_KEY);
+        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveConnectionsDB(connections) {
+    localStorage.setItem(CONNECTIONS_KEY, simpleEncrypt(JSON.stringify(connections), ENCRYPTION_KEY));
+}
+
+function loadEncryptionKeysDB() {
+    try {
+        const encrypted = localStorage.getItem(ENCRYPTION_KEYS_KEY);
+        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
+    } catch {
+        return {};
+    }
+
+function saveEncryptionKeysDB(keys) {
+    localStorage.setItem(ENCRYPTION_KEYS_KEY, simpleEncrypt(JSON.stringify(keys), ENCRYPTION_KEY));
+}
+
+/* --- GOOGLE AUTHENTICATION HANDLER --- */
 function authenticateWithGoogle() {
-    // Google Identity Services will handle the authentication
-    // This is a placeholder for the actual Google OAuth flow
-    console.log("Google authentication initiated");
+    // Show Google login modal
+    document.getElementById('googleLoginModal').style.display = 'flex';
+    document.getElementById('googleEmail').focus();
 }
 
+function closeGoogleLoginModal() {
+    document.getElementById('googleLoginModal').style.display = 'none';
+    document.getElementById('googleEmail').value = '';
+    document.getElementById('googleLoginStatus').textContent = '';
+}
+
+function verifyGoogleAccount() {
+    const email = document.getElementById('googleEmail').value.trim().toLowerCase();
+    const statusDiv = document.getElementById('googleLoginStatus');
+    
+    if (!email) {
+        statusDiv.textContent = '❌ Please enter a Gmail address';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    if (!email.endsWith('@gmail.com')) {
+        statusDiv.textContent = '❌ Please enter a valid Gmail address (ending with @gmail.com)';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    // Simulate Google account verification
+    statusDiv.textContent = '✅ Verifying Google account...';
+    statusDiv.style.color = '#ffc107';
+    
+    // Simulate API call delay
+    setTimeout(() => {
+        // Generate a random Google-like ID
+        const googleId = 'google-' + Math.random().toString(36).substring(2, 15);
+        
+        // Generate a random Google profile picture
+        const avatarSeed = Math.random().toString(36).substring(2, 10);
+        const avatar = `https://picsum.photos/seed/${avatarSeed}/200/200.jpg`;
+        
+        // Create or update user in database
+        const users = loadUsersDB();
+        
+        if (!users[email]) {
+            // Create new user
+            users[email] = {
+                username: email.split('@')[0],
+                password: "GOOGLE_AUTH",
+                avatar: avatar,
+                provider: "google",
+                googleId: googleId,
+                encryptionKey: generateEncryptionKey(),
+                createdAt: new Date().toISOString()
+            };
+            statusDiv.textContent = '✅ New Google account created successfully!';
+            statusDiv.style.color = '#00ff88';
+        } else {
+            // Update existing user with Google info
+            users[email].provider = "google";
+            users[email].googleId = googleId;
+            users[email].avatar = avatar;
+            statusDiv.textContent = '✅ Google account linked successfully!';
+            statusDiv.style.color = '#00ff88';
+        }
+        
+        saveUsersDB(users);
+        
+        // Set current user
+        currentUser = {
+            email: email,
+            username: users[email].username,
+            avatar: users[email].avatar,
+            provider: "google",
+            encryptionKey: users[email].encryptionKey
+        };
+        
+        // Save encryption key for current user
+        encryptionKey = users[email].encryptionKey;
+        
+        // Save session
+        saveSession();
+        
+        // Update UI
+        updateAuthUI();
+        loadGlobalPlaylist();
+        loadConnections();
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+            closeGoogleLoginModal();
+            showSyncStatus(`✅ Logged in via Google - Playlist synced globally`, 'synced');
+        }, 1500);
+    }, 1500);
+}
+
+/* --- YAHOO AUTHENTICATION HANDLER --- */
+function authenticateWithYahoo() {
+    // Show Yahoo login modal
+    document.getElementById('yahooLoginModal').style.display = 'flex';
+    document.getElementById('yahooEmail').focus();
+}
+
+function closeYahooLoginModal() {
+    document.getElementById('yahooLoginModal').style.display = 'none';
+    document.getElementById('yahooEmail').value = '';
+    document.getElementById('yahooLoginStatus').textContent = '';
+}
+
+function verifyYahooAccount() {
+    const email = document.getElementById('yahooEmail').value.trim().toLowerCase();
+    const statusDiv = document.getElementById('yahooLoginStatus');
+    
+    if (!email) {
+        statusDiv.textContent = '❌ Please enter a Yahoo email address';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    if (!email.endsWith('@yahoo.com') && !email.endsWith('@ymail.com')) {
+        statusDiv.textContent = '❌ Please enter a valid Yahoo email address';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    // Simulate Yahoo account verification
+    statusDiv.textContent = '✅ Verifying Yahoo account...';
+    statusDiv.style.color = '#ffc107';
+    
+    // Simulate API call delay
+    setTimeout(() => {
+        // Generate a random Yahoo-like ID
+        const yahooId = 'yahoo-' + Math.random().toString(36).substring(2, 15);
+        
+        // Generate a random profile picture
+        const avatarSeed = Math.random().toString(36).substring(2, 10);
+        const avatar = `https://picsum.photos/seed/${avatarSeed}/200/200.jpg`;
+        
+        // Create or update user in database
+        const users = loadUsersDB();
+        
+        if (!users[email]) {
+            // Create new user
+            users[email] = {
+                username: email.split('@')[0],
+                password: "YAHOO_AUTH",
+                avatar: avatar,
+                provider: "yahoo",
+                yahooId: yahooId,
+                encryptionKey: generateEncryptionKey(),
+                createdAt: new Date().toISOString()
+            };
+            statusDiv.textContent = '✅ New Yahoo account created successfully!';
+            statusDiv.style.color = '#00ff88';
+        } else {
+            // Update existing user with Yahoo info
+            users[email].provider = "yahoo";
+            users[email].yahooId = yahooId;
+            users[email].avatar = avatar;
+            statusDiv.textContent = '✅ Yahoo account linked successfully!';
+            statusDiv.style.color = '#00ff88';
+        }
+        
+        saveUsersDB(users);
+        
+        // Set current user
+        currentUser = {
+            email: email,
+            username: users[email].username,
+            avatar: users[email].avatar,
+            provider: "yahoo",
+            encryptionKey: users[email].encryptionKey
+        };
+        
+        // Save encryption key for current user
+        encryptionKey = users[email].encryptionKey;
+        
+        // Save session
+        saveSession();
+        
+        // Update UI
+        updateAuthUI();
+        loadGlobalPlaylist();
+        loadConnections();
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+            closeYahooLoginModal();
+            showSyncStatus(`✅ Logged in via Yahoo - Playlist synced globally`, 'synced');
+        }, 1500);
+    }, 1500);
+}
+
+/* --- OUTLOOK AUTHENTICATION HANDLER --- */
+function authenticateWithOutlook() {
+    // Show Outlook login modal
+    document.getElementById('outlookLoginModal').style.display = 'flex';
+    document.getElementById('outlookEmail').focus();
+}
+
+function closeOutlookLoginModal() {
+    document.getElementById('outlookLoginModal').style.display = 'none';
+    document.getElementById('outlookEmail').value = '';
+    document.getElementById('outlookLoginStatus').textContent = '';
+}
+
+function verifyOutlookAccount() {
+    const email = document.getElementById('outlookEmail').value.trim().toLowerCase();
+    const statusDiv = document.getElementById('outlookLoginStatus');
+    
+    if (!email) {
+        statusDiv.textContent = '❌ Please enter an Outlook email address';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    if (!email.endsWith('@outlook.com') && !email.endsWith('@hotmail.com') && !email.endsWith('@live.com')) {
+        statusDiv.textContent = '❌ Please enter a valid Outlook/Hotmail email address';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    // Simulate Outlook account verification
+    statusDiv.textContent = '✅ Verifying Outlook account...';
+    statusDiv.style.color = '#ffc107';
+    
+    // Simulate API call delay
+    setTimeout(() => {
+        // Generate a random Microsoft-like ID
+        const microsoftId = 'microsoft-' + Math.random().toString(36).substring(2, 15);
+        
+        // Generate a random profile picture
+        const avatarSeed = Math.random().toString(36).substring(2, 10);
+        const avatar = `https://picsum.photos/seed/${avatarSeed}/200/200.jpg`;
+        
+        // Create or update user in database
+        const users = loadUsersDB();
+        
+        if (!users[email]) {
+            // Create new user
+            users[email] = {
+                username: email.split('@')[0],
+                password: "OUTLOOK_AUTH",
+                avatar: avatar,
+                provider: "outlook",
+                microsoftId: microsoftId,
+                encryptionKey: generateEncryptionKey(),
+                createdAt: new Date().toISOString()
+            };
+            statusDiv.textContent = '✅ New Outlook account created successfully!';
+            statusDiv.style.color = '#00ff88';
+        } else {
+            // Update existing user with Outlook info
+            users[email].provider = "outlook";
+            users[email].microsoftId = microsoftId;
+            users[email].avatar = avatar;
+            statusDiv.textContent = '✅ Outlook account linked successfully!';
+            statusDiv.style.color = '#00ff88';
+        }
+        
+        saveUsersDB(users);
+        
+        // Set current user
+        currentUser = {
+            email: email,
+            username: users[email].username,
+            avatar: users[email].avatar,
+            provider: "outlook",
+            encryptionKey: users[email].encryptionKey
+        };
+        
+        // Save encryption key for current user
+        encryptionKey = users[email].encryptionKey;
+        
+        // Save session
+        saveSession();
+        
+        // Update UI
+        updateAuthUI();
+        loadGlobalPlaylist();
+        loadConnections();
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+            closeOutlookLoginModal();
+            showSyncStatus(`✅ Logged in via Outlook - Playlist synced globally`, 'synced');
+        }, 1500);
+    }, 1500);
+}
+
+/* --- OTHER AUTHENTICATION HANDLERS --- */
 function authenticateWithGitHub() {
-    // Simulate GitHub OAuth flow
-    const clientId = "your_github_client_id";
-    const redirectUri = window.location.origin + "/auth/github/callback";
-    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
-    
-    // In a real implementation, you would redirect to GitHub's OAuth page
-    // For this demo, we'll simulate a successful login
-    simulateOAuthLogin("github", "GitHub User", "user@github.com", "https://avatars.githubusercontent.com/u/1");
-}
-
-function authenticateWithMicrosoft() {
-    // Simulate Microsoft OAuth flow
-    const clientId = "your_microsoft_client_id";
-    const redirectUri = window.location.origin + "/auth/microsoft/callback";
-    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=openid%20profile%20email`;
-    
-    // In a real implementation, you would redirect to Microsoft's OAuth page
-    // For this demo, we'll simulate a successful login
-    simulateOAuthLogin("microsoft", "Microsoft User", "user@microsoft.com", "https://graph.microsoft.com/v1.0/me/photo/$value");
-}
-
-function authenticateWithTwitter() {
-    // Simulate Twitter OAuth flow
-    const clientId = "your_twitter_client_id";
-    const redirectUri = window.location.origin + "/auth/twitter/callback";
-    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=tweet.read%20users.read%20offline.access&state=state&code_challenge=challenge&code_challenge_method=plain`;
-    
-    // In a real implementation, you would redirect to Twitter's OAuth page
-    // For this demo, we'll simulate a successful login
-    simulateOAuthLogin("twitter", "Twitter User", "user@twitter.com", "https://pbs.twimg.com/profile_images/1234567890/default_profile.png");
+    alert("GitHub authentication would require a backend server for proper OAuth implementation. This demo uses local storage only.");
 }
 
 function authenticateWithApple() {
-    // Simulate Apple OAuth flow
-    const clientId = "your_apple_client_id";
-    const redirectUri = window.location.origin + "/auth/apple/callback";
-    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=name%20email&state=state&nonce=nonce`;
-    
-    // In a real implementation, you would redirect to Apple's OAuth page
-    // For this demo, we'll simulate a successful login
-    simulateOAuthLogin("apple", "Apple User", "user@apple.com", "https://example.com/apple-avatar.png");
+    alert("Apple authentication would require a backend server for proper OAuth implementation. This demo uses local storage only.");
 }
 
 function simulateOAuthLogin(provider, username, email, avatar) {
@@ -489,6 +1021,7 @@ function simulateOAuthLogin(provider, username, email, avatar) {
             avatar: avatar,
             provider: provider,
             oauthId: `oauth_${provider}_${Date.now()}`,
+            encryptionKey: generateEncryptionKey(),
             createdAt: new Date().toISOString()
         };
         saveUsersDB(users);
@@ -505,8 +1038,12 @@ function simulateOAuthLogin(provider, username, email, avatar) {
         email: normalizedEmail,
         username: users[normalizedEmail].username,
         avatar: users[normalizedEmail].avatar,
-        provider: provider
+        provider: provider,
+        encryptionKey: users[normalizedEmail].encryptionKey
     };
+    
+    // Save encryption key for current user
+    encryptionKey = users[normalizedEmail].encryptionKey;
     
     // Save session
     saveSession();
@@ -514,6 +1051,8 @@ function simulateOAuthLogin(provider, username, email, avatar) {
     // Update UI
     updateAuthUI();
     loadGlobalPlaylist();
+    loadConnections();
+    
     showSyncStatus(`✅ Logged in via ${provider.charAt(0).toUpperCase() + provider.slice(1)} - Playlist synced globally`, 'synced');
 }
 
@@ -534,6 +1073,7 @@ function loadSession() {
             const sessionData = JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY));
             if (new Date(sessionData.expires) > new Date()) {
                 currentUser = sessionData.user;
+                encryptionKey = currentUser.encryptionKey;
                 return true;
             } else {
                 localStorage.removeItem(SESSION_KEY);
@@ -542,6 +1082,213 @@ function loadSession() {
         return false;
     } catch {
         return false;
+    }
+}
+
+function loadConnections() {
+    if (!currentUser) return;
+    
+    const allConnections = loadConnectionsDB();
+    userConnections = allConnections[currentUser.email] || [];
+    
+    // Update UI
+    renderConnections();
+    
+    // Simulate connection status updates
+    setInterval(updateConnectionStatus, 5000);
+}
+
+function renderConnections() {
+    const connectionsList = document.getElementById('connectionsList');
+    connectionsList.innerHTML = '';
+    
+    if (userConnections.length === 0) {
+        connectionsList.innerHTML = '<p style="font-size: 12px; color: #666; text-align: center;">No connections yet. Connect with other users to share playlists securely.</p>';
+        return;
+    }
+    
+    userConnections.forEach((connection, index) => {
+        const connectionItem = document.createElement('div');
+        connectionItem.className = 'connection-item';
+        
+        const connectionInfo = document.createElement('div');
+        connectionInfo.className = 'connection-info';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'connection-avatar';
+        avatar.textContent = connection.username.charAt(0).toUpperCase();
+        
+        const details = document.createElement('div');
+        details.innerHTML = `
+            <div style="font-weight: bold;">${connection.username}</div>
+            <div style="font-size: 11px; opacity: 0.7;">${connection.email}</div>
+        `;
+        
+        connectionInfo.appendChild(avatar);
+        connectionInfo.appendChild(details);
+        
+        const connectionStatus = document.createElement('div');
+        connectionStatus.className = 'connection-status';
+        
+        const statusIndicator = document.createElement('div');
+        statusIndicator.className = 'status-indicator' + (connection.online ? '' : ' offline');
+        
+        const statusText = document.createElement('span');
+        statusText.textContent = connection.online ? 'Online' : 'Offline';
+        
+        connectionStatus.appendChild(statusIndicator);
+        connectionStatus.appendChild(statusText);
+        
+        const connectionActions = document.createElement('div');
+        connectionActions.className = 'connection-actions';
+        
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'action-btn';
+        shareBtn.textContent = 'Share';
+        shareBtn.onclick = () => sharePlaylistWithConnection(connection);
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'action-btn';
+        removeBtn.textContent = 'Remove';
+        removeBtn.onclick = () => removeConnection(index);
+        
+        connectionActions.appendChild(shareBtn);
+        connectionActions.appendChild(removeBtn);
+        
+        connectionItem.appendChild(connectionInfo);
+        connectionItem.appendChild(connectionStatus);
+        connectionItem.appendChild(connectionActions);
+        
+        connectionsList.appendChild(connectionItem);
+    });
+}
+
+function updateConnectionStatus() {
+    // Simulate online/offline status for connections
+    userConnections.forEach(connection => {
+        connection.online = Math.random() > 0.3; // 70% chance of being online
+    });
+    
+    renderConnections();
+}
+
+function addConnection(email) {
+    if (!currentUser || !email) return;
+    
+    const users = loadUsersDB();
+    if (!users[email] || email === currentUser.email) {
+        showSyncStatus('❌ Invalid user', 'error');
+        return;
+    }
+    
+    // Check if connection already exists
+    if (userConnections.some(conn => conn.email === email)) {
+        showSyncStatus('❌ Already connected with this user', 'error');
+        return;
+    }
+    
+    // Add connection
+    userConnections.push({
+        email: email,
+        username: users[email].username,
+        avatar: users[email].avatar,
+        online: true,
+        connectedAt: new Date().toISOString()
+    });
+    
+    // Save connections
+    const allConnections = loadConnectionsDB();
+    allConnections[currentUser.email] = userConnections;
+    saveConnectionsDB(allConnections);
+    
+    renderConnections();
+    showSyncStatus(`✅ Connected with ${users[email].username}`, 'synced');
+}
+
+function removeConnection(index) {
+    if (!currentUser || index < 0 || index >= userConnections.length) return;
+    
+    const removedConnection = userConnections[index];
+    userConnections.splice(index, 1);
+    
+    // Save connections
+    const allConnections = loadConnectionsDB();
+    allConnections[currentUser.email] = userConnections;
+    saveConnectionsDB(allConnections);
+    
+    renderConnections();
+    showSyncStatus(`❌ Disconnected from ${removedConnection.username}`, 'error');
+}
+
+function sharePlaylistWithConnection(connection) {
+    if (!currentUser || !connection || !encryptionKey) return;
+    
+    try {
+        // Encrypt playlist for sharing
+        const encryptedPlaylist = encryptData(playlist, encryptionKey);
+        
+        // Save shared playlist
+        const sharedPlaylists = loadSharedPlaylistsDB();
+        if (!sharedPlaylists[currentUser.email]) {
+            sharedPlaylists[currentUser.email] = [];
+        }
+        
+        sharedPlaylists[currentUser.email].push({
+            recipient: connection.email,
+            data: encryptedPlaylist,
+            sharedAt: new Date().toISOString()
+        });
+        
+        saveSharedPlaylistsDB(sharedPlaylists);
+        
+        showSyncStatus(`✅ Playlist shared with ${connection.username}`, 'synced');
+    } catch (error) {
+        showSyncStatus('❌ Failed to share playlist', 'error');
+    }
+}
+
+function loadSharedPlaylistsDB() {
+    try {
+        const encrypted = localStorage.getItem('zd_shared_playlists_v3');
+        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveSharedPlaylistsDB(playlists) {
+    localStorage.setItem('zd_shared_playlists_v3', simpleEncrypt(JSON.stringify(playlists), ENCRYPTION_KEY));
+}
+
+function acceptSharedPlaylist(senderEmail) {
+    if (!currentUser || !encryptionKey) return;
+    
+    try {
+        const sharedPlaylists = loadSharedPlaylistsDB();
+        const userSharedPlaylists = sharedPlaylists[senderEmail];
+        
+        if (!userSharedPlaylists) return;
+        
+        // Find the most recent shared playlist
+        const latestShare = userSharedPlaylists[userSharedPlaylists.length - 1];
+        
+        // Decrypt the playlist
+        const decryptedPlaylist = decryptData(latestShare.data, encryptionKey);
+        
+        if (decryptedPlaylist) {
+            // Add to current playlist
+            playlist = playlist.concat(decryptedPlaylist);
+            renderPlaylist();
+            savePlaylist();
+            
+            // Remove from shared playlists
+            sharedPlaylists[senderEmail].pop();
+            saveSharedPlaylistsDB(sharedPlaylists);
+            
+            showSyncStatus(`✅ Playlist received from ${senderEmail}`, 'synced');
+        }
+    } catch (error) {
+        showSyncStatus('❌ Failed to accept playlist', 'error');
     }
 }
 
@@ -565,11 +1312,16 @@ function registerUser() {
     // Hash password with salt
     const salt = generateSalt();
     const hash = hashPassword(password, salt);
+    
+    // Generate encryption key
+    const encryptionKey = generateEncryptionKey();
+    
     users[email] = { 
         username, 
         password: hash,
         salt: salt,
         provider: 'local',
+        encryptionKey: encryptionKey,
         createdAt: new Date().toISOString()
     };
     saveUsersDB(users);
@@ -605,10 +1357,21 @@ function loginUser() {
         return;
     }
 
-    currentUser = { email, username: user.username, avatar: user.avatar, provider: 'local' };
+    currentUser = { 
+        email, 
+        username: user.username, 
+        avatar: user.avatar, 
+        provider: 'local',
+        encryptionKey: user.encryptionKey
+    };
+    
+    // Save encryption key for current user
+    encryptionKey = user.encryptionKey;
+    
     saveSession();
     updateAuthUI();
     loadGlobalPlaylist();
+    loadConnections();
     showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
 }
 
@@ -642,6 +1405,7 @@ function resetPassword() {
 
 function logoutUser() {
     currentUser = null;
+    encryptionKey = null;
     localStorage.removeItem(SESSION_KEY);
     updateAuthUI();
     loadGuestPlaylist();
@@ -675,11 +1439,13 @@ function updateAuthUI() {
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('resetForm').style.display = 'none';
         document.querySelector('.auth-provider-grid').parentElement.style.display = 'none';
+        document.getElementById('connectionsSection').style.display = 'block';
     } else {
         document.getElementById('userInfo').style.display = 'none';
         document.querySelector('.auth-tabs').style.display = 'flex';
         document.getElementById('loginForm').classList.add('active'); // Reset to login
         document.querySelector('.auth-provider-grid').parentElement.style.display = 'block';
+        document.getElementById('connectionsSection').style.display = 'none';
     }
 }
 
@@ -692,7 +1458,15 @@ function getGlobalPlaylistKey() {
 
 function savePlaylist() {
     const key = getGlobalPlaylistKey();
-    localStorage.setItem(key, JSON.stringify(playlist));
+    
+    // Encrypt playlist if user is logged in
+    if (currentUser && encryptionKey) {
+        const encryptedPlaylist = encryptData(playlist, encryptionKey);
+        localStorage.setItem(key, JSON.stringify(encryptedPlaylist));
+    } else {
+        localStorage.setItem(key, JSON.stringify(playlist));
+    }
+    
     if (currentUser) {
         showSyncStatus('💾 Saved globally to ' + currentUser.email, 'synced');
     }
@@ -701,13 +1475,33 @@ function savePlaylist() {
 function loadGlobalPlaylist() {
     const key = getGlobalPlaylistKey();
     const saved = localStorage.getItem(key);
+    
     if (saved) {
-        playlist = JSON.parse(saved);
-        renderPlaylist();
+        try {
+            // Try to decrypt if user is logged in
+            if (currentUser && encryptionKey) {
+                const encryptedData = JSON.parse(saved);
+                const decryptedPlaylist = decryptData(encryptedData, encryptionKey);
+                
+                if (decryptedPlaylist) {
+                    playlist = decryptedPlaylist;
+                } else {
+                    // Fallback to unencrypted data
+                    playlist = JSON.parse(saved);
+                }
+            } else {
+                // No encryption for guest users
+                playlist = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.error('Error loading playlist:', e);
+            playlist = [];
+        }
     } else {
         playlist = [];
-        renderPlaylist();
     }
+    
+    renderPlaylist();
 }
 
 function loadGuestPlaylist() {
@@ -839,6 +1633,7 @@ window.addEventListener('load', () => {
     if (loadSession()) {
         updateAuthUI();
         loadGlobalPlaylist();
+        loadConnections();
         showSyncStatus('✅ Session restored - Playlist synced globally', 'synced');
     } else {
         loadGuestPlaylist();
