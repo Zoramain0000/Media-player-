@@ -10,9 +10,10 @@
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
     
     <!-- AUTH PROVIDER SCRIPTS -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser@8.0.0/dist/index.umd.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,6 +83,9 @@
 
         .login-form, .register-form, .reset-form { display: none; }
         .login-form.active, .register-form.active, .reset-form.active { display: block; }
+
+        /* Google Button Style Override to match theme */
+        .g_id_signin { margin: 10px 0; }
 
         .user-info { 
             display: flex; align-items: center; gap: 12px; margin-bottom: 15px; 
@@ -172,179 +176,135 @@
         .auth-provider-btn.google { border-color: #4285F4; }
         .auth-provider-btn.google:hover { background: rgba(66,133,244,0.1); }
         
-        .auth-provider-btn.yahoo { border-color: #720e9e; }
-        .auth-provider-btn.yahoo:hover { background: rgba(114,14,158,0.1); }
-        
-        .auth-provider-btn.outlook { border-color: #0078D4; }
-        .auth-provider-btn.outlook:hover { background: rgba(0,120,212,0.1); }
-        
         .auth-provider-btn.github { border-color: #333; }
         .auth-provider-btn.github:hover { background: rgba(51,51,51,0.1); }
         
+        .auth-provider-btn.microsoft { border-color: #0078D4; }
+        .auth-provider-btn.microsoft:hover { background: rgba(0,120,212,0.1); }
+        
+        .auth-provider-btn.twitter { border-color: #1DA1F2; }
+        .auth-provider-btn.twitter:hover { background: rgba(29,161,242,0.1); }
+        
         .auth-provider-btn.apple { border-color: #555; }
         .auth-provider-btn.apple:hover { background: rgba(85,85,85,0.1); }
+        
+        .auth-provider-btn.yahoo { border-color: #720E9E; }
+        .auth-provider-btn.yahoo:hover { background: rgba(114,14,158,0.1); }
 
-        .connections-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
+        .auth-connection {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 12px;
         }
         
-        .connection-item {
+        .auth-connection-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px;
-            margin-bottom: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            transition: 0.3s;
+            margin-bottom: 8px;
+            padding: 6px;
+            border-radius: 6px;
         }
         
-        .connection-item:hover {
-            background: rgba(255,255,255,0.1);
+        .auth-connection-item.connected {
+            background: rgba(0,255,136,0.1);
+            border-left: 3px solid #00ff88;
         }
         
-        .connection-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .connection-avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4285F4, #34A853);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #000;
-            font-size: 14px;
-        }
-        
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-        }
-        
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00ff88;
-        }
-        
-        .status-indicator.offline {
-            background: #ff4444;
-        }
-        
-        .connection-actions {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .action-btn {
-            padding: 5px 10px;
+        .auth-connection-item button {
+            padding: 4px 8px;
+            font-size: 11px;
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 4px;
             color: #aaa;
-            font-size: 11px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        
-        .action-btn:hover {
-            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
         }
 
-        .encryption-status {
-            margin-top: 15px;
+        .auth-connection-item button:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        .auth-connection-item button.disconnect {
+            background: rgba(255,68,68,0.1);
+            border-color: rgba(255,68,68,0.3);
+            color: #ff4444;
+        }
+
+        .auth-connection-item button.disconnect:hover {
+            background: rgba(255,68,68,0.2);
+            color: #fff;
+        }
+
+        .webauthn-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .webauthn-section h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+
+        .webauthn-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
             padding: 10px;
             background: rgba(0,255,136,0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
             border-radius: 6px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .encryption-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #00ff88;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 13px;
         }
 
-        .google-login-modal, .yahoo-login-modal, .outlook-login-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            justify-content: center;
+        .webauthn-btn:hover {
+            background: rgba(0,255,136,0.2);
+        }
+
+        .webauthn-list {
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .webauthn-item {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-        }
-        
-        .login-modal-content {
-            background: #0a0a0a;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 30px;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-        }
-        
-        .login-modal-input {
-            width: 100%;
-            padding: 12px;
+            padding: 8px;
+            margin-bottom: 5px;
             background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            color: #fff;
-            margin-bottom: 15px;
-            font-size: 14px;
-            outline: none;
+            border-radius: 6px;
+            font-size: 12px;
         }
-        
-        .login-modal-input:focus {
-            border-color: #00ff88;
-            background: rgba(0,255,136,0.1);
-            box-shadow: 0 0 0 3px rgba(0,255,136,0.2);
-        }
-        
-        .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 24px;
+
+        .webauthn-item button {
+            padding: 4px 8px;
+            background: rgba(255,68,68,0.1);
+            border: 1px solid rgba(255,68,68,0.3);
+            color: #ff4444;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 11px;
+        }
+
+        .webauthn-item button:hover {
+            background: rgba(255,68,68,0.2);
         }
 
         @media (max-width: 600px) {
             .controls-grid { grid-template-columns: repeat(3, 1fr); }
             .auth-tabs { flex-direction: column; }
             .auth-provider-grid { grid-template-columns: 1fr; }
-            .connection-item { flex-direction: column; gap: 10px; }
-            .connection-actions { width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -388,14 +348,14 @@
                         Google
                     </div>
                     
-                    <div class="auth-provider-btn yahoo" onclick="authenticateWithYahoo()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#720e9e">
-                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10S2 17.514 2 12 6.486 2 12 2zm0 2c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm0 2c3.314 0 6 2.686 6 6s-2.686 6-6 6-6-2.686-6-6 2.686-6 6-6z"/>
+                    <div class="auth-provider-btn github" onclick="authenticateWithGitHub()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                         </svg>
-                        Yahoo
+                        GitHub
                     </div>
                     
-                    <div class="auth-provider-btn outlook" onclick="authenticateWithOutlook()">
+                    <div class="auth-provider-btn microsoft" onclick="authenticateWithMicrosoft()">
                         <svg width="20" height="20" viewBox="0 0 24 24">
                             <g fill="#0078D4">
                                 <path d="M1 1h10v10H1z"/>
@@ -404,14 +364,14 @@
                                 <path d="M13 13h10v10H13z"/>
                             </g>
                         </svg>
-                        Outlook
+                        Microsoft
                     </div>
                     
-                    <div class="auth-provider-btn github" onclick="authenticateWithGitHub()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    <div class="auth-provider-btn twitter" onclick="authenticateWithTwitter()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DA1F2">
+                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
                         </svg>
-                        GitHub
+                        Twitter
                     </div>
                     
                     <div class="auth-provider-btn apple" onclick="authenticateWithApple()">
@@ -419,6 +379,14 @@
                             <path fill="#000" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                         </svg>
                         Apple
+                    </div>
+                    
+                    <div class="auth-provider-btn yahoo" onclick="authenticateWithYahoo()">
+                        <svg width="20" height="20" viewBox="0 0 24 24">
+                            <path fill="#720E9E" d="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10s10-4.48,10-10S17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8 s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z"/>
+                            <path fill="#720E9E" d="M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5S14.76,7,12,7z M12,15c-1.66,0-3-1.34-3-3s1.34-3,3-3 s3,1.34,3,3S13.66,15,12,15z"/>
+                        </svg>
+                        Yahoo
                     </div>
                 </div>
                 
@@ -462,16 +430,18 @@
                     </div>
                 </div>
                 
-                <div class="encryption-status">
-                    <div class="encryption-indicator"></div>
-                    <span>🔒 End-to-End Encryption Active</span>
-                </div>
-                
                 <div id="syncStatus" class="sync-status"></div>
                 
-                <div class="connections-section" id="connectionsSection">
-                    <h3 style="font-size: 14px; margin-bottom: 15px; color: #aaa;">🔗 Connections</h3>
-                    <div id="connectionsList"></div>
+                <div class="auth-connection">
+                    <div style="font-size: 12px; margin-bottom: 10px; color: #aaa;">Connected Accounts</div>
+                    <div id="authConnections" class="auth-connections"></div>
+                </div>
+                
+                <div class="webauthn-section">
+                    <h3>🔐 Security Keys</h3>
+                    <button class="webauthn-btn" id="registerWebAuthnBtn" onclick="registerWebAuthn()">Register Security Key</button>
+                    <button class="webauthn-btn" id="loginWebAuthnBtn" onclick="loginWithWebAuthn()">Login with Security Key</button>
+                    <div id="webauthnList" class="webauthn-list"></div>
                 </div>
                 
                 <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
@@ -499,7 +469,7 @@
         <div class="player-wrapper">
             <audio id="audioPlayer" controls></audio>
             <video id="videoPlayer" controls style="display:none;"></video>
-            <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen"></iframe>
+            <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
             <canvas id="visualizer" class="visualizer"></canvas>
 
@@ -524,51 +494,6 @@
     ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • LOCAL ENCRYPTED SYNC • NO SERVERS
 </footer>
 
-<!-- Google Login Modal -->
-<div id="googleLoginModal" class="google-login-modal">
-    <div class="google-login-content">
-        <button class="close-modal" onclick="closeGoogleLoginModal()">×</button>
-        <h3 style="margin-bottom: 20px; color: #4285F4;">Google Account Verification</h3>
-        <p style="margin-bottom: 20px; font-size: 14px; color: #888;">
-            To use Google authentication, please enter your Gmail address below. 
-            We'll verify it's a valid Google account and create your profile with end-to-end encryption.
-        </p>
-        <input id="googleEmail" type="email" class="login-modal-input" placeholder="your@gmail.com">
-        <button class="primary" onclick="verifyGoogleAccount()" style="width:100%;">Verify Google Account</button>
-        <div id="googleLoginStatus" style="margin-top: 15px; font-size: 12px;"></div>
-    </div>
-</div>
-
-<!-- Yahoo Login Modal -->
-<div id="yahooLoginModal" class="yahoo-login-modal">
-    <div class="login-modal-content">
-        <button class="close-modal" onclick="closeYahooLoginModal()">×</button>
-        <h3 style="margin-bottom: 20px; color: #720e9e;">Yahoo Account Verification</h3>
-        <p style="margin-bottom: 20px; font-size: 14px; color: #888;">
-            To use Yahoo authentication, please enter your Yahoo email address below. 
-            We'll verify it's a valid Yahoo account and create your encrypted profile.
-        </p>
-        <input id="yahooEmail" type="email" class="login-modal-input" placeholder="your@yahoo.com">
-        <button class="primary" onclick="verifyYahooAccount()" style="width:100%;">Verify Yahoo Account</button>
-        <div id="yahooLoginStatus" style="margin-top: 15px; font-size: 12px;"></div>
-    </div>
-</div>
-
-<!-- Outlook Login Modal -->
-<div id="outlookLoginModal" class="outlook-login-modal">
-    <div class="login-modal-content">
-        <button class="close-modal" onclick="closeOutlookLoginModal()">×</button>
-        <h3 style="margin-bottom: 20px; color: #0078D4;">Outlook Account Verification</h3>
-        <p style="margin-bottom: 20px; font-size: 14px; color: #888;">
-            To use Outlook authentication, please enter your Microsoft email address below. 
-            We'll verify it's a valid Outlook account and create your encrypted profile.
-        </p>
-        <input id="outlookEmail" type="email" class="login-modal-input" placeholder="your@outlook.com">
-        <button class="primary" onclick="verifyOutlookAccount()" style="width:100%;">Verify Outlook Account</button>
-        <div id="outlookLoginStatus" style="margin-top: 15px; font-size: 12px;"></div>
-    </div>
-</div>
-
 <script>
 /* =============================================================================
    GLOBAL ACCOUNT SYSTEM (NO BACKEND)
@@ -578,8 +503,6 @@ let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
 let repeat = false;
-let userConnections = [];
-let encryptionKey = null;
 
 // Local DB Keys
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
@@ -587,7 +510,7 @@ const USERS_KEY = 'zd_users_global_v3';
 const PLAYLISTS_KEY = 'zd_playlists_global_v3';
 const SESSION_KEY = 'zd_session_v3';
 const CONNECTIONS_KEY = 'zd_connections_v3';
-const ENCRYPTION_KEYS_KEY = 'zd_encryption_keys_v3';
+const WEBAUTHN_KEY = 'zd_webauthn_v3';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -641,1004 +564,47 @@ function generateSalt() {
 }
 
 function generateEncryptionKey() {
-    // Generate a random encryption key for the user
-    const key = forge.random.getBytesSync(32);
-    return forge.util.encode64(key);
+    // Generate a unique encryption key for each user based on their email
+    const email = currentUser ? currentUser.email : 'guest';
+    const hash = CryptoJS.SHA256(email + ENCRYPTION_KEY).toString();
+    return hash.substring(0, 32); // Use first 32 characters as the key
 }
 
-function encryptData(data, key) {
-    // Using Forge for encryption
-    const keyBytes = forge.util.decode64(key);
-    const iv = forge.random.getBytesSync(16);
-    
-    const cipher = forge.cipher.createCipher('AES-CBC', keyBytes);
-    cipher.start({ iv: iv });
-    cipher.update(forge.util.createBuffer(JSON.stringify(data)));
-    cipher.finish();
-    
-    const encrypted = forge.util.encode64(cipher.output.getBytes());
-    const ivEncoded = forge.util.encode64(iv);
-    
-    return {
-        data: encrypted,
-        iv: ivEncoded
-    };
-}
-
-function decryptData(encryptedData, key) {
-    try {
-        const keyBytes = forge.util.decode64(key);
-        const iv = forge.util.decode64(encryptedData.iv);
-        const encrypted = forge.util.decode64(encryptedData.data);
-        
-        const decipher = forge.cipher.createDecipher('AES-CBC', keyBytes);
-        decipher.start({ iv: iv });
-        decipher.update(forge.util.createBuffer(encrypted));
-        decipher.finish();
-        
-        return JSON.parse(decipher.output.toString());
-    } catch (e) {
-        console.error('Decryption failed:', e);
-        return null;
-    }
-}
-
-function loadConnectionsDB() {
-    try {
-        const encrypted = localStorage.getItem(CONNECTIONS_KEY);
-        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
-    } catch {
-        return {};
-    }
-}
-
-function saveConnectionsDB(connections) {
-    localStorage.setItem(CONNECTIONS_KEY, simpleEncrypt(JSON.stringify(connections), ENCRYPTION_KEY));
-}
-
-function loadEncryptionKeysDB() {
-    try {
-        const encrypted = localStorage.getItem(ENCRYPTION_KEYS_KEY);
-        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
-    } catch {
-        return {};
-    }
-
-function saveEncryptionKeysDB(keys) {
-    localStorage.setItem(ENCRYPTION_KEYS_KEY, simpleEncrypt(JSON.stringify(keys), ENCRYPTION_KEY));
-}
-
-/* --- GOOGLE AUTHENTICATION HANDLER --- */
+/* --- AUTHENTICATION HANDLERS --- */
 function authenticateWithGoogle() {
-    // Show Google login modal
-    document.getElementById('googleLoginModal').style.display = 'flex';
-    document.getElementById('googleEmail').focus();
-}
-
-function closeGoogleLoginModal() {
-    document.getElementById('googleLoginModal').style.display = 'none';
-    document.getElementById('googleEmail').value = '';
-    document.getElementById('googleLoginStatus').textContent = '';
-}
-
-function verifyGoogleAccount() {
-    const email = document.getElementById('googleEmail').value.trim().toLowerCase();
-    const statusDiv = document.getElementById('googleLoginStatus');
+    // Create a popup window for Google OAuth
+    const width = 500;
+    const height = 600;
+    const left = (window.innerWidth / 2) - (width / 2);
+    const top = (window.innerHeight / 2) - (height / 2);
     
-    if (!email) {
-        statusDiv.textContent = '❌ Please enter a Gmail address';
-        statusDiv.style.color = '#ff4444';
-        return;
-    }
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=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&` +
+        `redirect_uri=${encodeURIComponent(window.location.origin + '/auth/google/callback')}&` +
+        `response_type=code&` +
+        `scope=openid%20profile%20email&` +
+        `state=${Date.now()}`;
     
-    if (!email.endsWith('@gmail.com')) {
-        statusDiv.textContent = '❌ Please enter a valid Gmail address (ending with @gmail.com)';
-        statusDiv.style.color = '#ff4444';
-        return;
-    }
+    const popup = window.open(googleAuthUrl, 'Google OAuth', `width=${width},height=${height},left=${left},top=${top}`);
     
-    // Simulate Google account verification
-    statusDiv.textContent = '✅ Verifying Google account...';
-    statusDiv.style.color = '#ffc107';
-    
-    // Simulate API call delay
-    setTimeout(() => {
-        // Generate a random Google-like ID
-        const googleId = 'google-' + Math.random().toString(36).substring(2, 15);
-        
-        // Generate a random Google profile picture
-        const avatarSeed = Math.random().toString(36).substring(2, 10);
-        const avatar = `https://picsum.photos/seed/${avatarSeed}/200/200.jpg`;
-        
-        // Create or update user in database
-        const users = loadUsersDB();
-        
-        if (!users[email]) {
-            // Create new user
-            users[email] = {
-                username: email.split('@')[0],
-                password: "GOOGLE_AUTH",
-                avatar: avatar,
-                provider: "google",
-                googleId: googleId,
-                encryptionKey: generateEncryptionKey(),
-                createdAt: new Date().toISOString()
-            };
-            statusDiv.textContent = '✅ New Google account created successfully!';
-            statusDiv.style.color = '#00ff88';
-        } else {
-            // Update existing user with Google info
-            users[email].provider = "google";
-            users[email].googleId = googleId;
-            users[email].avatar = avatar;
-            statusDiv.textContent = '✅ Google account linked successfully!';
-            statusDiv.style.color = '#00ff88';
+    // Check if popup is closed
+    const checkPopup = setInterval(() => {
+        if (popup.closed) {
+            clearInterval(checkPopup);
         }
-        
-        saveUsersDB(users);
-        
-        // Set current user
-        currentUser = {
-            email: email,
-            username: users[email].username,
-            avatar: users[email].avatar,
-            provider: "google",
-            encryptionKey: users[email].encryptionKey
-        };
-        
-        // Save encryption key for current user
-        encryptionKey = users[email].encryptionKey;
-        
-        // Save session
-        saveSession();
-        
-        // Update UI
-        updateAuthUI();
-        loadGlobalPlaylist();
-        loadConnections();
-        
-        // Close modal after a short delay
-        setTimeout(() => {
-            closeGoogleLoginModal();
-            showSyncStatus(`✅ Logged in via Google - Playlist synced globally`, 'synced');
-        }, 1500);
-    }, 1500);
+    }, 1000);
 }
 
-/* --- YAHOO AUTHENTICATION HANDLER --- */
-function authenticateWithYahoo() {
-    // Show Yahoo login modal
-    document.getElementById('yahooLoginModal').style.display = 'flex';
-    document.getElementById('yahooEmail').focus();
-}
-
-function closeYahooLoginModal() {
-    document.getElementById('yahooLoginModal').style.display = 'none';
-    document.getElementById('yahooEmail').value = '';
-    document.getElementById('yahooLoginStatus').textContent = '';
-}
-
-function verifyYahooAccount() {
-    const email = document.getElementById('yahooEmail').value.trim().toLowerCase();
-    const statusDiv = document.getElementById('yahooLoginStatus');
-    
-    if (!email) {
-        statusDiv.textContent = '❌ Please enter a Yahoo email address';
-        statusDiv.style.color = '#ff4444';
-        return;
-    }
-    
-    if (!email.endsWith('@yahoo.com') && !email.endsWith('@ymail.com')) {
-        statusDiv.textContent = '❌ Please enter a valid Yahoo email address';
-        statusDiv.style.color = '#ff4444';
-        return;
-    }
-    
-    // Simulate Yahoo account verification
-    statusDiv.textContent = '✅ Verifying Yahoo account...';
-    statusDiv.style.color = '#ffc107';
-    
-    // Simulate API call delay
-    setTimeout(() => {
-        // Generate a random Yahoo-like ID
-        const yahooId = 'yahoo-' + Math.random().toString(36).substring(2, 15);
-        
-        // Generate a random profile picture
-        const avatarSeed = Math.random().toString(36).substring(2, 10);
-        const avatar = `https://picsum.photos/seed/${avatarSeed}/200/200.jpg`;
-        
-        // Create or update user in database
-        const users = loadUsersDB();
-        
-        if (!users[email]) {
-            // Create new user
-            users[email] = {
-                username: email.split('@')[0],
-                password: "YAHOO_AUTH",
-                avatar: avatar,
-                provider: "yahoo",
-                yahooId: yahooId,
-                encryptionKey: generateEncryptionKey(),
-                createdAt: new Date().toISOString()
-            };
-            statusDiv.textContent = '✅ New Yahoo account created successfully!';
-            statusDiv.style.color = '#00ff88';
-        } else {
-            // Update existing user with Yahoo info
-            users[email].provider = "yahoo";
-            users[email].yahooId = yahooId;
-            users[email].avatar = avatar;
-            statusDiv.textContent = '✅ Yahoo account linked successfully!';
-            statusDiv.style.color = '#00ff88';
-        }
-        
-        saveUsersDB(users);
-        
-        // Set current user
-        currentUser = {
-            email: email,
-            username: users[email].username,
-            avatar: users[email].avatar,
-            provider: "yahoo",
-            encryptionKey: users[email].encryptionKey
-        };
-        
-        // Save encryption key for current user
-        encryptionKey = users[email].encryptionKey;
-        
-        // Save session
-        saveSession();
-        
-        // Update UI
-        updateAuthUI();
-        loadGlobalPlaylist();
-        loadConnections();
-        
-        // Close modal after a short delay
-        setTimeout(() => {
-            closeYahooLoginModal();
-            showSyncStatus(`✅ Logged in via Yahoo - Playlist synced globally`, 'synced');
-        }, 1500);
-    }, 1500);
-}
-
-/* --- OUTLOOK AUTHENTICATION HANDLER --- */
-function authenticateWithOutlook() {
-    // Show Outlook login modal
-    document.getElementById('outlookLoginModal').style.display = 'flex';
-    document.getElementById('outlookEmail').focus();
-}
-
-function closeOutlookLoginModal() {
-    document.getElementById('outlookLoginModal').style.display = 'none';
-    document.getElementById('outlookEmail').value = '';
-    document.getElementById('outlookLoginStatus').textContent = '';
-}
-
-function verifyOutlookAccount() {
-    const email = document.getElementById('outlookEmail').value.trim().toLowerCase();
-    const statusDiv = document.getElementById('outlookLoginStatus');
-    
-    if (!email) {
-        statusDiv.textContent = '❌ Please enter an Outlook email address';
-        statusDiv.style.color = '#ff4444';
-        return;
-    }
-    
-    if (!email.endsWith('@outlook.com') && !email.endsWith('@hotmail.com') && !email.endsWith('@live.com')) {
-        statusDiv.textContent = '❌ Please enter a valid Outlook/Hotmail email address';
-        statusDiv.style.color = '#ff4444';
-        return;
-    }
-    
-    // Simulate Outlook account verification
-    statusDiv.textContent = '✅ Verifying Outlook account...';
-    statusDiv.style.color = '#ffc107';
-    
-    // Simulate API call delay
-    setTimeout(() => {
-        // Generate a random Microsoft-like ID
-        const microsoftId = 'microsoft-' + Math.random().toString(36).substring(2, 15);
-        
-        // Generate a random profile picture
-        const avatarSeed = Math.random().toString(36).substring(2, 10);
-        const avatar = `https://picsum.photos/seed/${avatarSeed}/200/200.jpg`;
-        
-        // Create or update user in database
-        const users = loadUsersDB();
-        
-        if (!users[email]) {
-            // Create new user
-            users[email] = {
-                username: email.split('@')[0],
-                password: "OUTLOOK_AUTH",
-                avatar: avatar,
-                provider: "outlook",
-                microsoftId: microsoftId,
-                encryptionKey: generateEncryptionKey(),
-                createdAt: new Date().toISOString()
-            };
-            statusDiv.textContent = '✅ New Outlook account created successfully!';
-            statusDiv.style.color = '#00ff88';
-        } else {
-            // Update existing user with Outlook info
-            users[email].provider = "outlook";
-            users[email].microsoftId = microsoftId;
-            users[email].avatar = avatar;
-            statusDiv.textContent = '✅ Outlook account linked successfully!';
-            statusDiv.style.color = '#00ff88';
-        }
-        
-        saveUsersDB(users);
-        
-        // Set current user
-        currentUser = {
-            email: email,
-            username: users[email].username,
-            avatar: users[email].avatar,
-            provider: "outlook",
-            encryptionKey: users[email].encryptionKey
-        };
-        
-        // Save encryption key for current user
-        encryptionKey = users[email].encryptionKey;
-        
-        // Save session
-        saveSession();
-        
-        // Update UI
-        updateAuthUI();
-        loadGlobalPlaylist();
-        loadConnections();
-        
-        // Close modal after a short delay
-        setTimeout(() => {
-            closeOutlookLoginModal();
-            showSyncStatus(`✅ Logged in via Outlook - Playlist synced globally`, 'synced');
-        }, 1500);
-    }, 1500);
-}
-
-/* --- OTHER AUTHENTICATION HANDLERS --- */
 function authenticateWithGitHub() {
-    alert("GitHub authentication would require a backend server for proper OAuth implementation. This demo uses local storage only.");
-}
-
-function authenticateWithApple() {
-    alert("Apple authentication would require a backend server for proper OAuth implementation. This demo uses local storage only.");
-}
-
-function simulateOAuthLogin(provider, username, email, avatar) {
-    // Create a user object for the OAuth provider
-    const users = loadUsersDB();
-    const normalizedEmail = email.toLowerCase();
+    const width = 500;
+    const height = 600;
+    const left = (window.innerWidth / 2) - (width / 2);
+    const top = (window.innerHeight / 2) - (height / 2);
     
-    // If user doesn't exist, create a new account
-    if (!users[normalizedEmail]) {
-        users[normalizedEmail] = {
-            username: username,
-            password: `OAUTH_${provider}`,
-            avatar: avatar,
-            provider: provider,
-            oauthId: `oauth_${provider}_${Date.now()}`,
-            encryptionKey: generateEncryptionKey(),
-            createdAt: new Date().toISOString()
-        };
-        saveUsersDB(users);
-    } else {
-        // Update existing user with OAuth provider info
-        users[normalizedEmail].provider = provider;
-        users[normalizedEmail].oauthId = `oauth_${provider}_${Date.now()}`;
-        users[normalizedEmail].avatar = avatar;
-        saveUsersDB(users);
-    }
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?` +
+        `client_id=your_github_client_id&` +
+        `redirect_uri=${encodeURIComponent(window.location.origin + '/auth/github/callback')}&` +
+        `scope=user:email&` +
+        `state=${Date.now()}`;
     
-    // Set current user
-    currentUser = {
-        email: normalizedEmail,
-        username: users[normalizedEmail].username,
-        avatar: users[normalizedEmail].avatar,
-        provider: provider,
-        encryptionKey: users[normalizedEmail].encryptionKey
-    };
-    
-    // Save encryption key for current user
-    encryptionKey = users[normalizedEmail].encryptionKey;
-    
-    // Save session
-    saveSession();
-    
-    // Update UI
-    updateAuthUI();
-    loadGlobalPlaylist();
-    loadConnections();
-    
-    showSyncStatus(`✅ Logged in via ${provider.charAt(0).toUpperCase() + provider.slice(1)} - Playlist synced globally`, 'synced');
-}
-
-function saveSession() {
-    if (currentUser) {
-        const sessionData = {
-            user: currentUser,
-            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-        };
-        localStorage.setItem(SESSION_KEY, simpleEncrypt(JSON.stringify(sessionData), ENCRYPTION_KEY));
-    }
-}
-
-function loadSession() {
-    try {
-        const encrypted = localStorage.getItem(SESSION_KEY);
-        if (encrypted) {
-            const sessionData = JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY));
-            if (new Date(sessionData.expires) > new Date()) {
-                currentUser = sessionData.user;
-                encryptionKey = currentUser.encryptionKey;
-                return true;
-            } else {
-                localStorage.removeItem(SESSION_KEY);
-            }
-        }
-        return false;
-    } catch {
-        return false;
-    }
-}
-
-function loadConnections() {
-    if (!currentUser) return;
-    
-    const allConnections = loadConnectionsDB();
-    userConnections = allConnections[currentUser.email] || [];
-    
-    // Update UI
-    renderConnections();
-    
-    // Simulate connection status updates
-    setInterval(updateConnectionStatus, 5000);
-}
-
-function renderConnections() {
-    const connectionsList = document.getElementById('connectionsList');
-    connectionsList.innerHTML = '';
-    
-    if (userConnections.length === 0) {
-        connectionsList.innerHTML = '<p style="font-size: 12px; color: #666; text-align: center;">No connections yet. Connect with other users to share playlists securely.</p>';
-        return;
-    }
-    
-    userConnections.forEach((connection, index) => {
-        const connectionItem = document.createElement('div');
-        connectionItem.className = 'connection-item';
-        
-        const connectionInfo = document.createElement('div');
-        connectionInfo.className = 'connection-info';
-        
-        const avatar = document.createElement('div');
-        avatar.className = 'connection-avatar';
-        avatar.textContent = connection.username.charAt(0).toUpperCase();
-        
-        const details = document.createElement('div');
-        details.innerHTML = `
-            <div style="font-weight: bold;">${connection.username}</div>
-            <div style="font-size: 11px; opacity: 0.7;">${connection.email}</div>
-        `;
-        
-        connectionInfo.appendChild(avatar);
-        connectionInfo.appendChild(details);
-        
-        const connectionStatus = document.createElement('div');
-        connectionStatus.className = 'connection-status';
-        
-        const statusIndicator = document.createElement('div');
-        statusIndicator.className = 'status-indicator' + (connection.online ? '' : ' offline');
-        
-        const statusText = document.createElement('span');
-        statusText.textContent = connection.online ? 'Online' : 'Offline';
-        
-        connectionStatus.appendChild(statusIndicator);
-        connectionStatus.appendChild(statusText);
-        
-        const connectionActions = document.createElement('div');
-        connectionActions.className = 'connection-actions';
-        
-        const shareBtn = document.createElement('button');
-        shareBtn.className = 'action-btn';
-        shareBtn.textContent = 'Share';
-        shareBtn.onclick = () => sharePlaylistWithConnection(connection);
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'action-btn';
-        removeBtn.textContent = 'Remove';
-        removeBtn.onclick = () => removeConnection(index);
-        
-        connectionActions.appendChild(shareBtn);
-        connectionActions.appendChild(removeBtn);
-        
-        connectionItem.appendChild(connectionInfo);
-        connectionItem.appendChild(connectionStatus);
-        connectionItem.appendChild(connectionActions);
-        
-        connectionsList.appendChild(connectionItem);
-    });
-}
-
-function updateConnectionStatus() {
-    // Simulate online/offline status for connections
-    userConnections.forEach(connection => {
-        connection.online = Math.random() > 0.3; // 70% chance of being online
-    });
-    
-    renderConnections();
-}
-
-function addConnection(email) {
-    if (!currentUser || !email) return;
-    
-    const users = loadUsersDB();
-    if (!users[email] || email === currentUser.email) {
-        showSyncStatus('❌ Invalid user', 'error');
-        return;
-    }
-    
-    // Check if connection already exists
-    if (userConnections.some(conn => conn.email === email)) {
-        showSyncStatus('❌ Already connected with this user', 'error');
-        return;
-    }
-    
-    // Add connection
-    userConnections.push({
-        email: email,
-        username: users[email].username,
-        avatar: users[email].avatar,
-        online: true,
-        connectedAt: new Date().toISOString()
-    });
-    
-    // Save connections
-    const allConnections = loadConnectionsDB();
-    allConnections[currentUser.email] = userConnections;
-    saveConnectionsDB(allConnections);
-    
-    renderConnections();
-    showSyncStatus(`✅ Connected with ${users[email].username}`, 'synced');
-}
-
-function removeConnection(index) {
-    if (!currentUser || index < 0 || index >= userConnections.length) return;
-    
-    const removedConnection = userConnections[index];
-    userConnections.splice(index, 1);
-    
-    // Save connections
-    const allConnections = loadConnectionsDB();
-    allConnections[currentUser.email] = userConnections;
-    saveConnectionsDB(allConnections);
-    
-    renderConnections();
-    showSyncStatus(`❌ Disconnected from ${removedConnection.username}`, 'error');
-}
-
-function sharePlaylistWithConnection(connection) {
-    if (!currentUser || !connection || !encryptionKey) return;
-    
-    try {
-        // Encrypt playlist for sharing
-        const encryptedPlaylist = encryptData(playlist, encryptionKey);
-        
-        // Save shared playlist
-        const sharedPlaylists = loadSharedPlaylistsDB();
-        if (!sharedPlaylists[currentUser.email]) {
-            sharedPlaylists[currentUser.email] = [];
-        }
-        
-        sharedPlaylists[currentUser.email].push({
-            recipient: connection.email,
-            data: encryptedPlaylist,
-            sharedAt: new Date().toISOString()
-        });
-        
-        saveSharedPlaylistsDB(sharedPlaylists);
-        
-        showSyncStatus(`✅ Playlist shared with ${connection.username}`, 'synced');
-    } catch (error) {
-        showSyncStatus('❌ Failed to share playlist', 'error');
-    }
-}
-
-function loadSharedPlaylistsDB() {
-    try {
-        const encrypted = localStorage.getItem('zd_shared_playlists_v3');
-        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
-    } catch {
-        return {};
-    }
-}
-
-function saveSharedPlaylistsDB(playlists) {
-    localStorage.setItem('zd_shared_playlists_v3', simpleEncrypt(JSON.stringify(playlists), ENCRYPTION_KEY));
-}
-
-function acceptSharedPlaylist(senderEmail) {
-    if (!currentUser || !encryptionKey) return;
-    
-    try {
-        const sharedPlaylists = loadSharedPlaylistsDB();
-        const userSharedPlaylists = sharedPlaylists[senderEmail];
-        
-        if (!userSharedPlaylists) return;
-        
-        // Find the most recent shared playlist
-        const latestShare = userSharedPlaylists[userSharedPlaylists.length - 1];
-        
-        // Decrypt the playlist
-        const decryptedPlaylist = decryptData(latestShare.data, encryptionKey);
-        
-        if (decryptedPlaylist) {
-            // Add to current playlist
-            playlist = playlist.concat(decryptedPlaylist);
-            renderPlaylist();
-            savePlaylist();
-            
-            // Remove from shared playlists
-            sharedPlaylists[senderEmail].pop();
-            saveSharedPlaylistsDB(sharedPlaylists);
-            
-            showSyncStatus(`✅ Playlist received from ${senderEmail}`, 'synced');
-        }
-    } catch (error) {
-        showSyncStatus('❌ Failed to accept playlist', 'error');
-    }
-}
-
-/* --- LOCAL AUTH LOGIC --- */
-function registerUser() {
-    const email = document.getElementById('regEmail').value.trim().toLowerCase();
-    const password = document.getElementById('regPassword').value;
-    const username = document.getElementById('regUsername').value.trim() || email.split('@')[0];
-
-    if (!email || !password || password.length < 4) {
-        alert('❌ Email and password (4+ chars) required');
-        return;
-    }
-
-    const users = loadUsersDB();
-    if (users[email]) {
-        alert('❌ Email already registered');
-        return;
-    }
-
-    // Hash password with salt
-    const salt = generateSalt();
-    const hash = hashPassword(password, salt);
-    
-    // Generate encryption key
-    const encryptionKey = generateEncryptionKey();
-    
-    users[email] = { 
-        username, 
-        password: hash,
-        salt: salt,
-        provider: 'local',
-        encryptionKey: encryptionKey,
-        createdAt: new Date().toISOString()
-    };
-    saveUsersDB(users);
-
-    alert('✅ Account created globally! Please login.');
-    showTab('login');
-    document.getElementById('regEmail').value = '';
-    document.getElementById('regPassword').value = '';
-    document.getElementById('regUsername').value = '';
-}
-
-function loginUser() {
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
-
-    if (!email || !password) {
-        alert('❌ Enter email and password');
-        return;
-    }
-
-    const users = loadUsersDB();
-    const user = users[email];
-    
-    if (!user || user.provider !== 'local') {
-        alert('❌ Account not found or uses OAuth Login. Try the OAuth buttons.');
-        return;
-    }
-
-    // Verify password with stored salt
-    const hash = hashPassword(password, user.salt);
-    if (hash !== user.password) {
-        alert('❌ Invalid email or password');
-        return;
-    }
-
-    currentUser = { 
-        email, 
-        username: user.username, 
-        avatar: user.avatar, 
-        provider: 'local',
-        encryptionKey: user.encryptionKey
-    };
-    
-    // Save encryption key for current user
-    encryptionKey = user.encryptionKey;
-    
-    saveSession();
-    updateAuthUI();
-    loadGlobalPlaylist();
-    loadConnections();
-    showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
-}
-
-function resetPassword() {
-    const email = document.getElementById('resetEmail').value.trim().toLowerCase();
-    const newPassword = document.getElementById('newPassword').value;
-
-    if (!email || !newPassword || newPassword.length < 4) {
-        alert('❌ Enter valid email and new password');
-        return;
-    }
-
-    const users = loadUsersDB();
-    if (!users[email] || users[email].provider !== 'local') {
-        alert('❌ This email is not registered with a local account.');
-        return;
-    }
-
-    // Update password with new salt
-    const salt = generateSalt();
-    const hash = hashPassword(newPassword, salt);
-    users[email].password = hash;
-    users[email].salt = salt;
-    saveUsersDB(users);
-
-    alert('✅ Password reset successfully for ' + email);
-    showTab('login');
-    document.getElementById('resetEmail').value = '';
-    document.getElementById('newPassword').value = '';
-}
-
-function logoutUser() {
-    currentUser = null;
-    encryptionKey = null;
-    localStorage.removeItem(SESSION_KEY);
-    updateAuthUI();
-    loadGuestPlaylist();
-}
-
-function showTab(tab) {
-    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.login-form, .register-form, .reset-form').forEach(f => f.classList.remove('active'));
-    
-    // Find button that was clicked (logic simplified)
-    const index = tab === 'login' ? 0 : tab === 'register' ? 1 : 2;
-    document.querySelectorAll('.auth-tab')[index].classList.add('active');
-    document.getElementById(tab + 'Form').classList.add('active');
-}
-
-function updateAuthUI() {
-    if (currentUser) {
-        document.getElementById('userName').textContent = currentUser.username;
-        document.getElementById('userEmail').textContent = currentUser.email;
-        document.getElementById('userProvider').textContent = `via ${currentUser.provider.charAt(0).toUpperCase() + currentUser.provider.slice(1)}`;
-        document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
-        if(currentUser.avatar) {
-            document.getElementById('userAvatar').style.backgroundImage = `url(${currentUser.avatar})`;
-            document.getElementById('userAvatar').style.backgroundSize = 'cover';
-            document.getElementById('userAvatar').textContent = '';
-        }
-        
-        document.getElementById('userInfo').style.display = 'block';
-        document.querySelector('.auth-tabs').style.display = 'none';
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('registerForm').style.display = 'none';
-        document.getElementById('resetForm').style.display = 'none';
-        document.querySelector('.auth-provider-grid').parentElement.style.display = 'none';
-        document.getElementById('connectionsSection').style.display = 'block';
-    } else {
-        document.getElementById('userInfo').style.display = 'none';
-        document.querySelector('.auth-tabs').style.display = 'flex';
-        document.getElementById('loginForm').classList.add('active'); // Reset to login
-        document.querySelector('.auth-provider-grid').parentElement.style.display = 'block';
-        document.getElementById('connectionsSection').style.display = 'none';
-    }
-}
-
-/* --- PLAYLIST SYNC LOGIC (GLOBAL) --- */
-function getGlobalPlaylistKey() {
-    // If user is logged in, use their email as the key. 
-    // This makes the playlist the SAME for that email on ANY device that loads this page.
-    return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist';
-}
-
-function savePlaylist() {
-    const key = getGlobalPlaylistKey();
-    
-    // Encrypt playlist if user is logged in
-    if (currentUser && encryptionKey) {
-        const encryptedPlaylist = encryptData(playlist, encryptionKey);
-        localStorage.setItem(key, JSON.stringify(encryptedPlaylist));
-    } else {
-        localStorage.setItem(key, JSON.stringify(playlist));
-    }
-    
-    if (currentUser) {
-        showSyncStatus('💾 Saved globally to ' + currentUser.email, 'synced');
-    }
-}
-
-function loadGlobalPlaylist() {
-    const key = getGlobalPlaylistKey();
-    const saved = localStorage.getItem(key);
-    
-    if (saved) {
-        try {
-            // Try to decrypt if user is logged in
-            if (currentUser && encryptionKey) {
-                const encryptedData = JSON.parse(saved);
-                const decryptedPlaylist = decryptData(encryptedData, encryptionKey);
-                
-                if (decryptedPlaylist) {
-                    playlist = decryptedPlaylist;
-                } else {
-                    // Fallback to unencrypted data
-                    playlist = JSON.parse(saved);
-                }
-            } else {
-                // No encryption for guest users
-                playlist = JSON.parse(saved);
-            }
-        } catch (e) {
-            console.error('Error loading playlist:', e);
-            playlist = [];
-        }
-    } else {
-        playlist = [];
-    }
-    
-    renderPlaylist();
-}
-
-function loadGuestPlaylist() {
-    const saved = localStorage.getItem('guest_playlist');
-    if (saved) {
-        playlist = JSON.parse(saved);
-    } else {
-        playlist = [];
-    }
-    renderPlaylist();
-}
-
-function showSyncStatus(message, type) {
-    const status = document.getElementById('syncStatus');
-    status.textContent = message;
-    status.className = `sync-status ${type}`;
-    status.classList.add('show');
-    setTimeout(() => status.classList.remove('show'), 3000);
-}
-
-/* --- PLAYER FUNCTIONS --- */
-function addMedia(url) {
-    let input = url || document.getElementById("mediaUrl").value.trim();
-    if (!input) return;
-
-    if (input.includes("spotify.com") && input.includes("preview")) {
-        input = input.replace("open.spotify.com/track", "p.scdn.co/mp3-preview");
-    }
-
-    playlist.push(input);
-    renderPlaylist();
-    document.getElementById("mediaUrl").value = "";
-    savePlaylist();
-}
-
-function renderPlaylist() {
-    playlistDiv.innerHTML = "";
-    playlist.forEach((url, i) => {
-        const div = document.createElement("div");
-        div.className = "track-item " + (i === currentIndex ? "current-track" : "");
-        div.textContent = `${i + 1}. ${getTrackName(url)}`;
-        div.onclick = () => playFromIndex(i);
-        playlistDiv.appendChild(div);
-    });
-}
-
-function getTrackName(url) {
-    return decodeURIComponent(url.split('/').pop().split('?')[0].split('#')[0] || 
-           url.split('v=')[1]?.split('&')[0]?.slice(0,30) || 
-           'Unknown Track');
-}
-
-function playFromIndex(index) {
-    if (index < 0 || index >= playlist.length) return;
-    currentIndex = index;
-    const url = playlist[index];
-
-    audioPlayer.pause(); audioPlayer.style.display = "none";
-    videoPlayer.pause(); videoPlayer.style.display = "none";
-    youtubePlayer.style.display = "none"; youtubePlayer.src = "";
-
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        youtubePlayer.style.display = "block";
-        let videoId = url.split("v=")[1]?.split("&")[0] || url.split("youtu.be/")[1]?.split("?")[0];
-        youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-    } else if (url.match(/\.(mp4|webm|ogg|mkv)$/i)) {
-        videoPlayer.style.display = "block";
-        videoPlayer.src = url;
-        videoPlayer.play().catch(() => {});
-    } else {
-        audioPlayer.style.display = "block";
-        audioPlayer.src = url;
-        audioPlayer.play().catch(() => {});
-        initVisualizer();
-    }
-    renderPlaylist();
-    savePlaylist();
-}
-
-function playMedia() { if (currentIndex === -1 && playlist.length > 0) playFromIndex(0); else { audioPlayer?.play(); videoPlayer?.play(); } }
-function pauseMedia() { audioPlayer?.pause(); videoPlayer?.pause(); }
-function nextTrack() { if (playlist.length === 0) return; let next = repeat ? currentIndex : (currentIndex + 1) % playlist.length; playFromIndex(next); }
-function prevTrack() { if (playlist.length === 0) return; let prev = (currentIndex - 1 + playlist.length) % playlist.length; playFromIndex(prev); }
-function toggleRepeat() { repeat = !repeat; document.getElementById("repeatBtn").innerHTML = `🔁 ${repeat ? 'ON' : 'OFF'}`; }
-function setVolume(v) { audioPlayer.volume = v; videoPlayer.volume = v; }
-function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); }
-function removeMedia() { if (currentIndex > -1) { playlist.splice(currentIndex, 1); currentIndex = Math.min(currentIndex, playlist.length - 1); renderPlaylist(); savePlaylist(); } }
-function shufflePlaylist() { for (let i = playlist.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [playlist[i], playlist[j]] = [playlist[j], playlist[i]]; } renderPlaylist(); savePlaylist(); }
-
-function initVisualizer() {
-    if (audioCtx) return;
-    try {
-        audioCtx = new AudioContext();
-        analyser = audioCtx.createAnalyser();
-        source = audioCtx.createMediaElementSource(audioPlayer);
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        analyser.fftSize = 128;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        function draw() { requestAnimationFrame(draw); analyser.getByteFrequencyData(dataArray); ctx.clearRect(0, 0, canvas.width, canvas.height); const barWidth = (canvas.width / bufferLength) * 2.5; let x = 0; for (let i = 0; i < bufferLength; i++) { let barHeight = (dataArray[i] / 255) * canvas.height * 0.8; ctx.fillStyle = `hsl(${i/bufferLength*360},70%,50%)`; ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight); x += barWidth + 1; } }; draw();
-    } catch(e) {}
-}
-
-document.addEventListener("dragover", e => e.preventDefault());
-document.addEventListener("drop", e => {
-    e.preventDefault();
-    const url = e.dataTransfer.getData("text");
-    if (url) addMedia(url);
-});
-
-/* --- PWA INSTALL --- */
-let deferredPrompt;
-document.getElementById('installBtn').onclick = async () => {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
-    }
-};
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
-
-/* --- INIT --- */
-window.addEventListener('load', () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    
-    // Check for existing session
-    if (loadSession()) {
-        updateAuthUI();
-        loadGlobalPlaylist();
-        loadConnections();
-        showSyncStatus('✅ Session restored - Playlist synced globally', 'synced');
-    } else {
-        loadGuestPlaylist();
-    }
-});
-</script>
-</body>
-</html>
+    const popup = window.open(githubAuthUrl, 'GitHub OAuth', `width=${width},height=${height},left=${left},t
