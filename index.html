@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,8 +10,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/000000/FFFFFF?text=ZD">
     
-    <!-- REQUIRED FOR GOOGLE LOGIN TO WORK -->
+    <!-- AUTH PROVIDER SCRIPTS -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -144,9 +146,51 @@
 
         footer { text-align: center; padding: 50px 20px; color: #666; font-size: 12px; letter-spacing: 1.2px; }
 
+        .auth-provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .auth-provider-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #aaa;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .auth-provider-btn:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .auth-provider-btn.google { border-color: #4285F4; }
+        .auth-provider-btn.google:hover { background: rgba(66,133,244,0.1); }
+        
+        .auth-provider-btn.github { border-color: #333; }
+        .auth-provider-btn.github:hover { background: rgba(51,51,51,0.1); }
+        
+        .auth-provider-btn.microsoft { border-color: #0078D4; }
+        .auth-provider-btn.microsoft:hover { background: rgba(0,120,212,0.1); }
+        
+        .auth-provider-btn.twitter { border-color: #1DA1F2; }
+        .auth-provider-btn.twitter:hover { background: rgba(29,161,242,0.1); }
+        
+        .auth-provider-btn.apple { border-color: #555; }
+        .auth-provider-btn.apple:hover { background: rgba(85,85,85,0.1); }
+
         @media (max-width: 600px) {
             .controls-grid { grid-template-columns: repeat(3, 1fr); }
             .auth-tabs { flex-direction: column; }
+            .auth-provider-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -175,31 +219,60 @@
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
-            <!-- GOOGLE SIGN IN (Always Visible) -->
+            <!-- AUTH PROVIDERS -->
             <div style="text-align: center; margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                <div style="font-size: 11px; color: #666; margin-bottom: 10px;">QUICK ACCESS</div>
+                <div style="font-size: 11px; color: #666; margin-bottom: 15px;">QUICK ACCESS</div>
                 
-                <!-- Google Identity Component -->
-                <div id="g_id_onload"
-                     data-client_id="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"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-callback="handleGoogleCredentialResponse"
-                     data-auto_prompt="false">
+                <div class="auth-provider-grid">
+                    <div class="auth-provider-btn google" onclick="authenticateWithGoogle()">
+                        <svg width="20" height="20" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Google
+                    </div>
+                    
+                    <div class="auth-provider-btn github" onclick="authenticateWithGitHub()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        GitHub
+                    </div>
+                    
+                    <div class="auth-provider-btn microsoft" onclick="authenticateWithMicrosoft()">
+                        <svg width="20" height="20" viewBox="0 0 24 24">
+                            <g fill="#0078D4">
+                                <path d="M1 1h10v10H1z"/>
+                                <path d="M13 1h10v10H13z"/>
+                                <path d="M1 13h10v10H1z"/>
+                                <path d="M13 13h10v10H13z"/>
+                            </g>
+                        </svg>
+                        Microsoft
+                    </div>
+                    
+                    <div class="auth-provider-btn twitter" onclick="authenticateWithTwitter()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DA1F2">
+                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                        </svg>
+                        Twitter
+                    </div>
+                    
+                    <div class="auth-provider-btn apple" onclick="authenticateWithApple()">
+                        <svg width="20" height="20" viewBox="0 0 24 24">
+                            <path fill="#000" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                        </svg>
+                        Apple
+                    </div>
                 </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="rectangular"
-                     data-theme="filled_black"
-                     data-text="signin_with"
-                     data-size="large"
-                     data-logo_alignment="left">
-                </div>
+                
+                <div style="font-size: 11px; color: #666; margin: 15px 0;">- OR USE EMAIL -</div>
             </div>
 
             <!-- LOCAL LOGIN FORM -->
             <div id="loginForm" class="login-form active">
-                <div style="text-align: center; margin: 10px 0; color: #666; font-size: 12px;">- OR USE EMAIL -</div>
                 <input id="loginEmail" type="email" placeholder="Email address">
                 <input id="loginPassword" type="password" placeholder="Password">
                 <button class="primary" onclick="loginUser()" style="width:100%;">🚀 Login</button>
@@ -216,10 +289,10 @@
             <!-- RESET PASSWORD FORM -->
             <div id="resetForm" class="reset-form">
                 <p style="font-size: 13px; color: #888; margin-bottom: 10px;">
-                    Enter your registered Gmail to reset your password. 
+                    Enter your registered email to reset your password. 
                     (Since we have no backend, this creates a reset token locally).
                 </p>
-                <input id="resetEmail" type="email" placeholder="Registered Gmail">
+                <input id="resetEmail" type="email" placeholder="Registered email">
                 <input id="newPassword" type="password" placeholder="New Password">
                 <button class="primary" onclick="resetPassword()" style="width:100%;">🔑 Reset Password</button>
             </div>
@@ -231,6 +304,7 @@
                     <div>
                         <div id="userName"></div>
                         <div id="userEmail" style="font-size:12px; opacity:0.8;"></div>
+                        <div id="userProvider" style="font-size:11px; opacity:0.6;"></div>
                     </div>
                 </div>
                 <div id="syncStatus" class="sync-status"></div>
@@ -298,6 +372,7 @@ let repeat = false;
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
 const USERS_KEY = 'zd_users_global_v3';
 const PLAYLISTS_KEY = 'zd_playlists_global_v3';
+const SESSION_KEY = 'zd_session_v3';
 
 const playlistDiv = document.getElementById("playlist");
 const audioPlayer = document.getElementById("audioPlayer");
@@ -342,43 +417,132 @@ function saveUsersDB(users) {
     localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPTION_KEY));
 }
 
-/* --- GOOGLE LOGIN HANDLER --- */
-function handleGoogleCredentialResponse(response) {
-    // Decode JWT to get email
-    const payload = jwt_decode(response.credential);
-    const email = payload.email.toLowerCase();
-    const username = payload.name || email.split('@')[0];
+function hashPassword(password, salt) {
+    return CryptoJS.SHA256(password + salt).toString();
+}
+
+function generateSalt() {
+    return CryptoJS.lib.WordArray.random(128/8).toString();
+}
+
+/* --- AUTHENTICATION HANDLERS --- */
+function authenticateWithGoogle() {
+    // Google Identity Services will handle the authentication
+    // This is a placeholder for the actual Google OAuth flow
+    console.log("Google authentication initiated");
+}
+
+function authenticateWithGitHub() {
+    // Simulate GitHub OAuth flow
+    const clientId = "your_github_client_id";
+    const redirectUri = window.location.origin + "/auth/github/callback";
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
     
-    // Auto-register if not exists
+    // In a real implementation, you would redirect to GitHub's OAuth page
+    // For this demo, we'll simulate a successful login
+    simulateOAuthLogin("github", "GitHub User", "user@github.com", "https://avatars.githubusercontent.com/u/1");
+}
+
+function authenticateWithMicrosoft() {
+    // Simulate Microsoft OAuth flow
+    const clientId = "your_microsoft_client_id";
+    const redirectUri = window.location.origin + "/auth/microsoft/callback";
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=openid%20profile%20email`;
+    
+    // In a real implementation, you would redirect to Microsoft's OAuth page
+    // For this demo, we'll simulate a successful login
+    simulateOAuthLogin("microsoft", "Microsoft User", "user@microsoft.com", "https://graph.microsoft.com/v1.0/me/photo/$value");
+}
+
+function authenticateWithTwitter() {
+    // Simulate Twitter OAuth flow
+    const clientId = "your_twitter_client_id";
+    const redirectUri = window.location.origin + "/auth/twitter/callback";
+    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=tweet.read%20users.read%20offline.access&state=state&code_challenge=challenge&code_challenge_method=plain`;
+    
+    // In a real implementation, you would redirect to Twitter's OAuth page
+    // For this demo, we'll simulate a successful login
+    simulateOAuthLogin("twitter", "Twitter User", "user@twitter.com", "https://pbs.twimg.com/profile_images/1234567890/default_profile.png");
+}
+
+function authenticateWithApple() {
+    // Simulate Apple OAuth flow
+    const clientId = "your_apple_client_id";
+    const redirectUri = window.location.origin + "/auth/apple/callback";
+    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=name%20email&state=state&nonce=nonce`;
+    
+    // In a real implementation, you would redirect to Apple's OAuth page
+    // For this demo, we'll simulate a successful login
+    simulateOAuthLogin("apple", "Apple User", "user@apple.com", "https://example.com/apple-avatar.png");
+}
+
+function simulateOAuthLogin(provider, username, email, avatar) {
+    // Create a user object for the OAuth provider
     const users = loadUsersDB();
-    if (!users[email]) {
-        // Create account with empty password (Google users don't need password)
-        users[email] = { 
-            username: username, 
-            password: 'GOOGLE_AUTH', 
-            avatar: payload.picture 
+    const normalizedEmail = email.toLowerCase();
+    
+    // If user doesn't exist, create a new account
+    if (!users[normalizedEmail]) {
+        users[normalizedEmail] = {
+            username: username,
+            password: `OAUTH_${provider}`,
+            avatar: avatar,
+            provider: provider,
+            oauthId: `oauth_${provider}_${Date.now()}`,
+            createdAt: new Date().toISOString()
         };
         saveUsersDB(users);
     } else {
-        // Update avatar if changed
-        users[email].avatar = payload.picture;
+        // Update existing user with OAuth provider info
+        users[normalizedEmail].provider = provider;
+        users[normalizedEmail].oauthId = `oauth_${provider}_${Date.now()}`;
+        users[normalizedEmail].avatar = avatar;
         saveUsersDB(users);
     }
-
-    currentUser = { email, username: users[email].username, avatar: users[email].avatar };
+    
+    // Set current user
+    currentUser = {
+        email: normalizedEmail,
+        username: users[normalizedEmail].username,
+        avatar: users[normalizedEmail].avatar,
+        provider: provider
+    };
+    
+    // Save session
+    saveSession();
+    
+    // Update UI
     updateAuthUI();
     loadGlobalPlaylist();
-    showSyncStatus('✅ Logged in via Google - Playlist synced globally', 'synced');
+    showSyncStatus(`✅ Logged in via ${provider.charAt(0).toUpperCase() + provider.slice(1)} - Playlist synced globally`, 'synced');
 }
 
-// Simple JWT decoder for Google tokens
-function jwt_decode(t) {
-    let base64Url = t.split('.')[1];
-    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
+function saveSession() {
+    if (currentUser) {
+        const sessionData = {
+            user: currentUser,
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        };
+        localStorage.setItem(SESSION_KEY, simpleEncrypt(JSON.stringify(sessionData), ENCRYPTION_KEY));
+    }
+}
+
+function loadSession() {
+    try {
+        const encrypted = localStorage.getItem(SESSION_KEY);
+        if (encrypted) {
+            const sessionData = JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY));
+            if (new Date(sessionData.expires) > new Date()) {
+                currentUser = sessionData.user;
+                return true;
+            } else {
+                localStorage.removeItem(SESSION_KEY);
+            }
+        }
+        return false;
+    } catch {
+        return false;
+    }
 }
 
 /* --- LOCAL AUTH LOGIC --- */
@@ -398,9 +562,16 @@ function registerUser() {
         return;
     }
 
-    // Hash password
-    const hash = btoa(email + ':' + password + ENCRYPTION_KEY);
-    users[email] = { username, password: hash, avatar: null };
+    // Hash password with salt
+    const salt = generateSalt();
+    const hash = hashPassword(password, salt);
+    users[email] = { 
+        username, 
+        password: hash,
+        salt: salt,
+        provider: 'local',
+        createdAt: new Date().toISOString()
+    };
     saveUsersDB(users);
 
     alert('✅ Account created globally! Please login.');
@@ -422,17 +593,20 @@ function loginUser() {
     const users = loadUsersDB();
     const user = users[email];
     
-    if (!user || user.password === 'GOOGLE_AUTH') {
-        alert('❌ Account not found or uses Google Login. Try the Google button.');
+    if (!user || user.provider !== 'local') {
+        alert('❌ Account not found or uses OAuth Login. Try the OAuth buttons.');
         return;
     }
 
-    if (user.password !== btoa(email + ':' + password + ENCRYPTION_KEY)) {
+    // Verify password with stored salt
+    const hash = hashPassword(password, user.salt);
+    if (hash !== user.password) {
         alert('❌ Invalid email or password');
         return;
     }
 
-    currentUser = { email, username: user.username, avatar: user.avatar };
+    currentUser = { email, username: user.username, avatar: user.avatar, provider: 'local' };
+    saveSession();
     updateAuthUI();
     loadGlobalPlaylist();
     showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
@@ -443,18 +617,21 @@ function resetPassword() {
     const newPassword = document.getElementById('newPassword').value;
 
     if (!email || !newPassword || newPassword.length < 4) {
-        alert('❌ Enter valid Gmail and new password');
+        alert('❌ Enter valid email and new password');
         return;
     }
 
     const users = loadUsersDB();
-    if (!users[email]) {
-        alert('❌ This Gmail is not registered.');
+    if (!users[email] || users[email].provider !== 'local') {
+        alert('❌ This email is not registered with a local account.');
         return;
     }
 
-    // Update password
-    users[email].password = btoa(email + ':' + newPassword + ENCRYPTION_KEY);
+    // Update password with new salt
+    const salt = generateSalt();
+    const hash = hashPassword(newPassword, salt);
+    users[email].password = hash;
+    users[email].salt = salt;
     saveUsersDB(users);
 
     alert('✅ Password reset successfully for ' + email);
@@ -465,6 +642,7 @@ function resetPassword() {
 
 function logoutUser() {
     currentUser = null;
+    localStorage.removeItem(SESSION_KEY);
     updateAuthUI();
     loadGuestPlaylist();
 }
@@ -483,6 +661,7 @@ function updateAuthUI() {
     if (currentUser) {
         document.getElementById('userName').textContent = currentUser.username;
         document.getElementById('userEmail').textContent = currentUser.email;
+        document.getElementById('userProvider').textContent = `via ${currentUser.provider.charAt(0).toUpperCase() + currentUser.provider.slice(1)}`;
         document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
         if(currentUser.avatar) {
             document.getElementById('userAvatar').style.backgroundImage = `url(${currentUser.avatar})`;
@@ -495,12 +674,12 @@ function updateAuthUI() {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('resetForm').style.display = 'none';
-        document.querySelector('.g_id_signin').parentElement.style.display = 'none';
+        document.querySelector('.auth-provider-grid').parentElement.style.display = 'none';
     } else {
         document.getElementById('userInfo').style.display = 'none';
         document.querySelector('.auth-tabs').style.display = 'flex';
         document.getElementById('loginForm').classList.add('active'); // Reset to login
-        document.querySelector('.g_id_signin').parentElement.style.display = 'block';
+        document.querySelector('.auth-provider-grid').parentElement.style.display = 'block';
     }
 }
 
@@ -656,10 +835,14 @@ window.addEventListener('load', () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     
-    // Check if user was previously logged in locally (simulate session persistence)
-    // Since no backend, we check localStorage directly or just start as guest
-    // For this implementation, we start as guest to allow switching accounts easily
-    loadGuestPlaylist();
+    // Check for existing session
+    if (loadSession()) {
+        updateAuthUI();
+        loadGlobalPlaylist();
+        showSyncStatus('✅ Session restored - Playlist synced globally', 'synced');
+    } else {
+        loadGuestPlaylist();
+    }
 });
 </script>
 </body>
