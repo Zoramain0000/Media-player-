@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -58,8 +58,9 @@
         button:hover { background: #eee; color: #000; transform: translateY(-2px); }
         button.primary { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
         button.primary:hover { background: #00ff88; color: #000; }
+        button.danger { border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.1); }
+        button.danger:hover { background: #ff4444; color: #000; }
         
-        /* Custom Quick Access Button Style */
         .quick-btn {
             width: 100%; padding: 14px; background: linear-gradient(135deg, #1a1a1a, #0a2a1a); 
             border: 1px solid #00ff88; color: #00ff88; border-radius: 8px; cursor: pointer; font-size: 14px; 
@@ -111,26 +112,42 @@
         .sync-status.synced { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; }
         .sync-status.syncing { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
 
+        /* Playlist & Player Updates */
+        .playlist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-left: 3px solid #666; padding-left: 10px; }
+        .playlist-header h2 { margin-bottom: 0; border: none; padding: 0; }
+        .playlist-filters { display: flex; gap: 8px; }
+        .filter-btn { padding: 6px 12px; font-size: 11px; border-radius: 20px; }
+        .filter-btn.active { background: rgba(0,255,136,0.2); color: #00ff88; border-color: #00ff88; }
+
         .playlist {
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace;
-            max-height: 250px; overflow-y: auto; margin-bottom: 20px;
+            max-height: 300px; overflow-y: auto; margin-bottom: 20px;
         }
         .track-item {
             padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
             cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; 
             text-overflow: ellipsis; border-radius: 6px; margin-bottom: 4px;
+            display: flex; justify-content: space-between; align-items: center;
         }
         .track-item:hover { background: rgba(255,255,255,0.1); }
         .current-track { 
             color: #00ff88; background: rgba(0,255,136,0.2); 
             border-left: 4px solid #00ff88; font-weight: 500;
         }
+        .track-actions { display: flex; gap: 8px; z-index: 2; }
+        .track-btn { background: none; border: none; color: #666; font-size: 14px; cursor: pointer; transition: 0.2s; padding: 0; }
+        .track-btn:hover { color: #fff; transform: scale(1.2); }
+        .track-btn.fav-active { color: #ff4f4f; }
 
         .player-wrapper {
             background: rgba(0,0,0,0.6); padding: 25px; border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 15px 40px rgba(0,0,0,0.6);
         }
+        .now-playing-info { text-align: center; margin-bottom: 15px; min-height: 40px; }
+        .now-playing-title { color: #00ff88; font-size: 16px; font-weight: bold; word-break: break-all; }
+        .now-playing-type { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+
         audio, video { width: 100%; margin-bottom: 18px; border-radius: 8px; }
         iframe { width: 100%; aspect-ratio: 16/9; border-radius: 10px; margin-bottom: 18px; background: #000; }
 
@@ -144,11 +161,39 @@
         .volume-box { margin-top: 25px; display: flex; align-items: center; gap: 15px; font-size: 13px; color: #888; }
         input[type="range"] { flex: 1; accent-color: #00ff88; height: 6px; }
 
+        /* Toast Notifications */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            padding: 14px 20px; background: rgba(20,20,20,0.95); color: #fff; border-radius: 8px;
+            border-left: 4px solid #00ff88; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-size: 13px; animation: slideIn 0.3s ease-out forwards;
+            backdrop-filter: blur(10px); max-width: 300px;
+        }
+        .toast.error { border-color: #ff4444; }
+        .toast.warning { border-color: #ffc107; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        /* Keyboard Shortcut Overlay */
+        .shortcut-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 8000;
+            display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px);
+        }
+        .shortcut-overlay.show { display: flex; }
+        .shortcut-box {
+            background: #111; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+            max-width: 400px; width: 90%;
+        }
+        .shortcut-box h3 { margin-bottom: 20px; color: #00ff88; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+        .shortcut-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+        .shortcut-key { background: #222; padding: 2px 8px; border-radius: 4px; font-family: monospace; border: 1px solid #444; }
+
         footer { text-align: center; padding: 50px 20px; color: #666; font-size: 12px; letter-spacing: 1.2px; }
 
         @media (max-width: 600px) {
             .controls-grid { grid-template-columns: repeat(3, 1fr); }
             .auth-tabs { flex-direction: column; }
+            .playlist-header { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
     </style>
 </head>
@@ -177,7 +222,6 @@
                 <button class="auth-tab" onclick="showTab('reset')">Reset Pass</button>
             </div>
 
-            <!-- QUICK ACCESS FEATURE -->
             <div id="quickAccessWrapper" style="margin: 20px 0; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <div style="font-size: 11px; color: #666; margin-bottom: 15px; text-align: center;">INSTANT SESSION (NO PASSWORD REQUIRED)</div>
                 <input id="quickUsername" type="text" placeholder="Enter any username to start instantly">
@@ -187,7 +231,6 @@
                 </button>
             </div>
 
-            <!-- LOCAL LOGIN FORM -->
             <div id="loginForm" class="login-form active">
                 <div style="text-align: center; margin: 10px 0; color: #666; font-size: 12px;">- OR USE SECURE EMAIL LOGIN -</div>
                 <input id="loginEmail" type="email" placeholder="Email address">
@@ -195,7 +238,6 @@
                 <button class="primary" onclick="loginUser()" style="width:100%;">🚀 Login</button>
             </div>
 
-            <!-- REGISTER FORM -->
             <div id="registerForm" class="register-form">
                 <input id="regEmail" type="email" placeholder="Email address">
                 <input id="regPassword" type="password" placeholder="Password">
@@ -203,7 +245,6 @@
                 <button class="primary" onclick="registerUser()" style="width:100%;">✨ Create Account</button>
             </div>
 
-            <!-- RESET PASSWORD FORM -->
             <div id="resetForm" class="reset-form">
                 <p style="font-size: 13px; color: #888; margin-bottom: 10px;">
                     Enter your registered email to reset your password locally.
@@ -213,7 +254,6 @@
                 <button class="primary" onclick="resetPassword()" style="width:100%;">🔑 Reset Password</button>
             </div>
 
-            <!-- USER INFO (Logged In State) -->
             <div id="userInfo" style="display:none;">
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">U</div>
@@ -234,18 +274,33 @@
         <div class="btn-group">
             <button class="primary" onclick="addMedia()">Add to Playlist</button>
             <button onclick="shufflePlaylist()">🔀 Shuffle</button>
-            <button onclick="clearPlaylist()">🗑️ Clear All</button>
+            <button class="danger" onclick="clearPlaylist()">🗑️ Clear All</button>
+            <button onclick="toggleShortcutOverlay()">⌨️ Shortcuts</button>
         </div>
     </div>
 
     <div class="section">
-        <h2>📋 Playlist</h2>
+        <div class="playlist-header">
+            <h2>📋 Playlist</h2>
+            <div class="playlist-filters">
+                <button class="filter-btn active" onclick="filterPlaylist('all')">All</button>
+                <button class="filter-btn" onclick="filterPlaylist('audio')">Audio</button>
+                <button class="filter-btn" onclick="filterPlaylist('video')">Video</button>
+                <button class="filter-btn" onclick="filterPlaylist('fav')">⭐ Favs</button>
+            </div>
+        </div>
+        <input id="playlistSearch" type="text" placeholder="🔍 Search tracks..." oninput="renderPlaylist()">
         <div class="playlist" id="playlist"></div>
     </div>
 
     <div class="section">
         <h2>🎵 Now Playing</h2>
         <div class="player-wrapper">
+            <div class="now-playing-info">
+                <div class="now-playing-title" id="nowPlayingTitle">No track selected</div>
+                <div class="now-playing-type" id="nowPlayingType"></div>
+            </div>
+
             <audio id="audioPlayer" controls></audio>
             <video id="videoPlayer" controls style="display:none;"></video>
             <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
@@ -253,12 +308,13 @@
             <canvas id="visualizer" class="visualizer"></canvas>
 
             <div class="controls-grid">
-                <button onclick="prevTrack()">⏮️</button>
-                <button onclick="playMedia()">▶️</button>
-                <button onclick="pauseMedia()">⏸️</button>
-                <button onclick="nextTrack()">⏭️</button>
+                <button onclick="prevTrack()">⏮️ Prev</button>
+                <button onclick="playMedia()">▶️ Play</button>
+                <button onclick="pauseMedia()">⏸️ Pause</button>
+                <button onclick="nextTrack()">⏭️ Next</button>
                 <button id="repeatBtn" onclick="toggleRepeat()">🔁 OFF</button>
-                <button onclick="removeMedia()">❌</button>
+                <button onclick="removeMedia()">❌ Remove</button>
+                <button id="favBtn" onclick="toggleCurrentFav()">⭐ Fav</button>
             </div>
 
             <div class="volume-box">
@@ -268,6 +324,24 @@
     </div>
 
 </div>
+
+<div class="shortcut-overlay" id="shortcutOverlay" onclick="toggleShortcutOverlay()">
+    <div class="shortcut-box">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcut-row"><span>Play / Pause</span> <span class="shortcut-key">Space</span></div>
+        <div class="shortcut-row"><span>Next Track</span> <span class="shortcut-key">→</span></div>
+        <div class="shortcut-row"><span>Previous Track</span> <span class="shortcut-key">←</span></div>
+        <div class="shortcut-row"><span>Volume Up</span> <span class="shortcut-key">↑</span></div>
+        <div class="shortcut-row"><span>Volume Down</span> <span class="shortcut-key">↓</span></div>
+        <div class="shortcut-row"><span>Toggle Repeat</span> <span class="shortcut-key">R</span></div>
+        <div class="shortcut-row"><span>Toggle Favorite</span> <span class="shortcut-key">F</span></div>
+        <div class="shortcut-row"><span>Close Overlay</span> <span class="shortcut-key">ESC</span></div>
+        <br>
+        <button class="primary" style="width: 100%;" onclick="toggleShortcutOverlay()">Close</button>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <footer>
     ZERODAYS PROJECT • GLOBAL ACCOUNT ACCESS • QUICK LOCAL SYNC • NO API KEYS
@@ -282,6 +356,7 @@ let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
 let repeat = false;
+let currentFilter = 'all';
 
 const ENCRYPTION_KEY = 'ZeroDays_Global_2026!@#';
 const USERS_KEY = 'zd_users_global_v7';
@@ -295,11 +370,25 @@ const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
 let audioCtx, analyser, source;
 
+/* --- TOAST NOTIFICATION SYSTEM --- */
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
 /* --- QUICK ACCESS FEATURE --- */
 function quickAccessLogin() {
     const username = document.getElementById('quickUsername').value.trim();
     if (!username || username.length < 2) {
-        alert('❌ Please enter a username (2+ chars) to start quickly.');
+        showToast('Please enter a username (2+ chars) to start quickly.', 'error');
         return;
     }
 
@@ -307,7 +396,7 @@ function quickAccessLogin() {
     
     const users = loadUsersDB();
     if (!users[sessionId]) {
-        users[sessionId] = { username: username, password: 'QUICK_ACCESS', avatar: null };
+        users[sessionId] = { username: username, password: 'QUICK_ACCESS', avatar: null, favorites: [] };
         saveUsersDB(users);
     }
 
@@ -316,6 +405,7 @@ function quickAccessLogin() {
     updateAuthUI();
     loadGlobalPlaylist();
     showSyncStatus('⚡ Quick Access Active - Session saved locally', 'synced');
+    showToast(`Welcome, ${username}! Quick Access enabled.`);
 }
 
 function saveSession() {
@@ -373,21 +463,21 @@ function registerUser() {
     const username = document.getElementById('regUsername').value.trim() || email.split('@')[0];
 
     if (!email || !password || password.length < 4) {
-        alert('❌ Email and password (4+ chars) required');
+        showToast('Email and password (4+ chars) required', 'error');
         return;
     }
 
     const users = loadUsersDB();
     if (users[email]) {
-        alert('❌ Email already registered');
+        showToast('Email already registered', 'error');
         return;
     }
 
     const hash = btoa(email + ':' + password + ENCRYPTION_KEY);
-    users[email] = { username, password: hash, avatar: null };
+    users[email] = { username, password: hash, avatar: null, favorites: [] };
     saveUsersDB(users);
 
-    alert('✅ Account created globally! Please login.');
+    showToast('Account created globally! Please login.');
     showTab('login');
 }
 
@@ -396,7 +486,7 @@ function loginUser() {
     const password = document.getElementById('loginPassword').value;
 
     if (!email || !password) {
-        alert('❌ Enter email and password');
+        showToast('Enter email and password', 'error');
         return;
     }
 
@@ -404,12 +494,12 @@ function loginUser() {
     const user = users[email];
     
     if (!user || user.password === 'QUICK_ACCESS') {
-        alert('❌ Account not found or uses Quick Access. Please register first.');
+        showToast('Account not found or uses Quick Access. Please register first.', 'error');
         return;
     }
 
     if (user.password !== btoa(email + ':' + password + ENCRYPTION_KEY)) {
-        alert('❌ Invalid email or password');
+        showToast('Invalid email or password', 'error');
         return;
     }
 
@@ -418,6 +508,7 @@ function loginUser() {
     updateAuthUI();
     loadGlobalPlaylist();
     showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
+    showToast(`Welcome back, ${user.username}!`);
 }
 
 function resetPassword() {
@@ -425,20 +516,20 @@ function resetPassword() {
     const newPassword = document.getElementById('newPassword').value;
 
     if (!email || !newPassword || newPassword.length < 4) {
-        alert('❌ Enter valid email and new password');
+        showToast('Enter valid email and new password', 'error');
         return;
     }
 
     const users = loadUsersDB();
     if (!users[email]) {
-        alert('❌ This email is not registered.');
+        showToast('This email is not registered.', 'error');
         return;
     }
 
     users[email].password = btoa(email + ':' + newPassword + ENCRYPTION_KEY);
     saveUsersDB(users);
 
-    alert('✅ Password reset successfully for ' + email);
+    showToast('Password reset successfully for ' + email);
     showTab('login');
 }
 
@@ -447,6 +538,7 @@ function logoutUser() {
     currentUser = null;
     updateAuthUI();
     loadGuestPlaylist();
+    showToast('Logged out successfully.', 'warning');
 }
 
 function showTab(tab) {
@@ -522,6 +614,12 @@ function showSyncStatus(message, type) {
 }
 
 /* --- PLAYER FUNCTIONS --- */
+function getMediaType(url) {
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return 'youtube';
+    if (url.match(/\.(mp4|webm|ogg|mkv)$/i)) return 'video';
+    return 'audio';
+}
+
 function addMedia(url) {
     let input = url || document.getElementById("mediaUrl").value.trim();
     if (!input) return;
@@ -530,21 +628,44 @@ function addMedia(url) {
         input = input.replace("open.spotify.com/track", "p.scdn.co/mp3-preview");
     }
 
-    playlist.push(input);
+    playlist.push({ url: input, fav: false });
     renderPlaylist();
     document.getElementById("mediaUrl").value = "";
     savePlaylist();
+    showToast('Track added to playlist!');
 }
 
 function renderPlaylist() {
     playlistDiv.innerHTML = "";
-    playlist.forEach((url, i) => {
+    const searchTerm = document.getElementById('playlistSearch').value.toLowerCase();
+    
+    playlist.forEach((item, i) => {
+        const type = getMediaType(item.url);
+        
+        // Filter Logic
+        if (currentFilter === 'audio' && type !== 'audio') return;
+        if (currentFilter === 'video' && (type !== 'video' && type !== 'youtube')) return;
+        if (currentFilter === 'fav' && !item.fav) return;
+        
+        // Search Logic
+        const trackName = getTrackName(item.url).toLowerCase();
+        if (searchTerm && !trackName.includes(searchTerm)) return;
+
         const div = document.createElement("div");
         div.className = "track-item " + (i === currentIndex ? "current-track" : "");
-        div.textContent = `${i + 1}. ${getTrackName(url)}`;
+        
+        div.innerHTML = `
+            <span>${i + 1}. ${trackName}</span>
+            <div class="track-actions">
+                <button class="track-btn ${item.fav ? 'fav-active' : ''}" onclick="event.stopPropagation(); toggleFav(${i})">⭐</button>
+                <button class="track-btn" onclick="event.stopPropagation(); removeSpecificTrack(${i})">❌</button>
+            </div>
+        `;
         div.onclick = () => playFromIndex(i);
         playlistDiv.appendChild(div);
     });
+    
+    updateNowPlayingInfo();
 }
 
 function getTrackName(url) {
@@ -556,7 +677,7 @@ function getTrackName(url) {
 function playFromIndex(index) {
     if (index < 0 || index >= playlist.length) return;
     currentIndex = index;
-    const url = playlist[index];
+    const url = playlist[index].url;
 
     audioPlayer.pause(); audioPlayer.style.display = "none";
     videoPlayer.pause(); videoPlayer.style.display = "none";
@@ -580,37 +701,189 @@ function playFromIndex(index) {
     savePlaylist();
 }
 
+function updateNowPlayingInfo() {
+    const titleEl = document.getElementById('nowPlayingTitle');
+    const typeEl = document.getElementById('nowPlayingType');
+    const favBtn = document.getElementById('favBtn');
+    
+    if (currentIndex !== -1 && playlist[currentIndex]) {
+        titleEl.textContent = getTrackName(playlist[currentIndex].url);
+        typeEl.textContent = getMediaType(playlist[currentIndex].url).toUpperCase();
+        favBtn.style.color = playlist[currentIndex].fav ? '#ff4f4f' : '#aaa';
+    } else {
+        titleEl.textContent = 'No track selected';
+        typeEl.textContent = '';
+        favBtn.style.color = '#aaa';
+    }
+}
+
 function playMedia() { if (currentIndex === -1 && playlist.length > 0) playFromIndex(0); else { audioPlayer?.play(); videoPlayer?.play(); } }
 function pauseMedia() { audioPlayer?.pause(); videoPlayer?.pause(); }
 function nextTrack() { if (playlist.length === 0) return; let next = repeat ? currentIndex : (currentIndex + 1) % playlist.length; playFromIndex(next); }
 function prevTrack() { if (playlist.length === 0) return; let prev = (currentIndex - 1 + playlist.length) % playlist.length; playFromIndex(prev); }
-function toggleRepeat() { repeat = !repeat; document.getElementById("repeatBtn").innerHTML = `🔁 ${repeat ? 'ON' : 'OFF'}`; }
+function toggleRepeat() { repeat = !repeat; document.getElementById("repeatBtn").innerHTML = `🔁 ${repeat ? 'ON' : 'OFF'}`; showToast(`Repeat mode ${repeat ? 'enabled' : 'disabled'}`); }
 function setVolume(v) { audioPlayer.volume = v; videoPlayer.volume = v; }
-function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); }
-function removeMedia() { if (currentIndex > -1) { playlist.splice(currentIndex, 1); currentIndex = Math.min(currentIndex, playlist.length - 1); renderPlaylist(); savePlaylist(); } }
-function shufflePlaylist() { for (let i = playlist.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [playlist[i], playlist[j]] = [playlist[j], playlist[i]]; } renderPlaylist(); savePlaylist(); }
+function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); showToast('Playlist cleared', 'warning'); }
+function removeMedia() { removeSpecificTrack(currentIndex); }
 
-function initVisualizer() {
-    if (audioCtx) return;
-    try {
-        audioCtx = new AudioContext();
-        analyser = audioCtx.createAnalyser();
-        source = audioCtx.createMediaElementSource(audioPlayer);
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        analyser.fftSize = 128;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        function draw() { requestAnimationFrame(draw); analyser.getByteFrequencyData(dataArray); ctx.clearRect(0, 0, canvas.width, canvas.height); const barWidth = (canvas.width / bufferLength) * 2.5; let x = 0; for (let i = 0; i < bufferLength; i++) { let barHeight = (dataArray[i] / 255) * canvas.height * 0.8; ctx.fillStyle = `hsl(${i/bufferLength*360},70%,50%)`; ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight); x += barWidth + 1; } }; draw();
-    } catch(e) {}
+function removeSpecificTrack(index) {
+    if (index > -1) {
+        const name = getTrackName(playlist[index].url);
+        playlist.splice(index, 1);
+        if (index === currentIndex) {
+            currentIndex = -1; // Reset current if removed
+        } else if (index < currentIndex) {
+            currentIndex--; // Adjust index if an earlier track is removed
+        }
+        renderPlaylist();
+        savePlaylist();
+        showToast(`Removed: ${name}`, 'error');
+    }
 }
 
+function shufflePlaylist() { 
+    for (let i = playlist.length - 1; i > 0; i--) { 
+        const j = Math.floor(Math.random() * (i + 1)); 
+        [playlist[i], playlist[j]] = [playlist[j], playlist[i]]; 
+    }
+    currentIndex = -1; 
+    renderPlaylist(); 
+    savePlaylist(); 
+    showToast('Playlist shuffled 🔀');
+}
+
+/* --- FAVORITES SYSTEM --- */
+function toggleFav(index) {
+    playlist[index].fav = !playlist[index].fav;
+    renderPlaylist();
+    savePlaylist();
+    showToast(playlist[index].fav ? 'Added to Favorites ⭐' : 'Removed from Favorites');
+}
+
+function toggleCurrentFav() {
+    if (currentIndex !== -1) {
+        toggleFav(currentIndex);
+    }
+}
+
+/* --- PLAYLIST FILTERS --- */
+function filterPlaylist(type) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    renderPlaylist();
+}
+
+/* --- VISUALIZER UPGRADE --- */
+function initVisualizer() {
+    if (!audioCtx) {
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            source = audioCtx.createMediaElementSource(audioPlayer);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        } catch(e) { console.error("AudioContext error", e); }
+    }
+    if (analyser) {
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        function draw() {
+            requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                let barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
+                
+                // Gradient color based on frequency
+                const hue = (i / bufferLength) * 120 + 120; // Range from Green to Cyan
+                ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.8)`;
+                
+                // Drawing rounded caps for bars
+                const radius = Math.min(barWidth/2, barHeight/2, 4);
+                ctx.beginPath();
+                ctx.moveTo(x + radius, canvas.height - barHeight);
+                ctx.lineTo(x + barWidth - radius, canvas.height - barHeight);
+                ctx.quadraticCurveTo(x + barWidth, canvas.height - barHeight, x + barWidth, canvas.height - barHeight + radius);
+                ctx.lineTo(x + barWidth, canvas.height);
+                ctx.lineTo(x, canvas.height);
+                ctx.lineTo(x, canvas.height - barHeight + radius);
+                ctx.quadraticCurveTo(x, canvas.height - barHeight, x + radius, canvas.height - barHeight);
+                ctx.closePath();
+                ctx.fill();
+                
+                x += barWidth + 2;
+            }
+        }
+        draw();
+    }
+}
+
+/* --- KEYBOARD SHORTCUTS --- */
+function toggleShortcutOverlay() {
+    document.getElementById('shortcutOverlay').classList.toggle('show');
+}
+
+window.addEventListener('keydown', (e) => {
+    // Ignore if user is typing in an input field
+    if (e.target.tagName === 'INPUT') return;
+
+    switch(e.key) {
+        case ' ':
+            e.preventDefault();
+            if (audioPlayer.paused || videoPlayer.paused) playMedia();
+            else pauseMedia();
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            nextTrack();
+            break;
+        case 'ArrowLeft':
+            e.preventDefault();
+            prevTrack();
+            break;
+        case 'ArrowUp':
+            e.preventDefault();
+            setVolume(Math.min(1, audioPlayer.volume + 0.05));
+            document.querySelector('input[type="range"]').value = audioPlayer.volume;
+            break;
+        case 'ArrowDown':
+            e.preventDefault();
+            setVolume(Math.max(0, audioPlayer.volume - 0.05));
+            document.querySelector('input[type="range"]').value = audioPlayer.volume;
+            break;
+        case 'r':
+        case 'R':
+            toggleRepeat();
+            break;
+        case 'f':
+        case 'F':
+            toggleCurrentFav();
+            break;
+        case 'Escape':
+            const overlay = document.getElementById('shortcutOverlay');
+            if (overlay.classList.contains('show')) toggleShortcutOverlay();
+            break;
+    }
+});
+
+/* Drag & Drop */
 document.addEventListener("dragover", e => e.preventDefault());
 document.addEventListener("drop", e => {
     e.preventDefault();
     const url = e.dataTransfer.getData("text");
     if (url) addMedia(url);
 });
+
+/* Auto-play next track on end */
+audioPlayer.addEventListener('ended', nextTrack);
+videoPlayer.addEventListener('ended', nextTrack);
 
 /* --- PWA INSTALL --- */
 let deferredPrompt;
@@ -628,10 +901,7 @@ window.addEventListener('load', () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     
-    // Attempt to load previous session automatically
     loadSession();
-    
-    // If no active session, load guest playlist
     if (!currentUser) {
         loadGuestPlaylist();
     }
