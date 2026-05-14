@@ -49,7 +49,7 @@
         }
         input:focus { border-color: #00ff88; background: rgba(0,255,136,0.1); box-shadow: 0 0 0 3px rgba(0,255,136,0.2); }
 
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         button {
             padding: 12px 20px; background: rgba(255,255,255,0.05);
             border: 1px solid #444; color: #aaa; border-radius: 8px;
@@ -140,6 +140,16 @@
         .track-btn:hover { color: #fff; transform: scale(1.2); }
         .track-btn.fav-active { color: #ff4f4f; }
 
+        /* File Drop Zone */
+        .drop-zone {
+            border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px;
+            padding: 25px; text-align: center; margin-bottom: 12px;
+            transition: 0.3s; color: #666; font-size: 13px;
+        }
+        .drop-zone.drag-over {
+            border-color: #00ff88; background: rgba(0,255,136,0.1); color: #00ff88;
+        }
+
         .player-wrapper {
             background: rgba(0,0,0,0.6); padding: 25px; border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 15px 40px rgba(0,0,0,0.6);
@@ -149,7 +159,9 @@
         .now-playing-type { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
 
         audio, video { width: 100%; margin-bottom: 18px; border-radius: 8px; }
-        iframe { width: 100%; aspect-ratio: 16/9; border-radius: 10px; margin-bottom: 18px; background: #000; }
+        iframe { width: 100%; height: 180px; border-radius: 10px; margin-bottom: 18px; background: #000; border: none; }
+        iframe.youtube-iframe { height: 0; padding-bottom: 56.25%; position: relative; }
+        iframe.youtube-iframe { aspect-ratio: 16/9; height: auto; }
 
         .visualizer { width: 100%; height: 90px; background: rgba(0,0,0,0.4); border-radius: 10px; margin-bottom: 20px; }
 
@@ -160,6 +172,13 @@
 
         .volume-box { margin-top: 25px; display: flex; align-items: center; gap: 15px; font-size: 13px; color: #888; }
         input[type="range"] { flex: 1; accent-color: #00ff88; height: 6px; }
+
+        /* Hide default file input */
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .file-input-wrapper input[type="file"] { 
+            position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; 
+            width: 100%; height: 100%;
+        }
 
         /* Toast Notifications */
         .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
@@ -270,9 +289,19 @@
 
     <div class="section">
         <h2>➕ Add Media</h2>
-        <input id="mediaUrl" type="text" placeholder="📎 Drop URL or paste (YouTube, MP4, MP3, Spotify...)">
+        <input id="mediaUrl" type="text" placeholder="📎 Paste URL (Spotify, SoundCloud, YouTube, Apple Music, MP3...)">
+        
+        <div class="drop-zone" id="dropZone">
+            📂 Drag & Drop Local Audio/Video Files Here<br>
+            <span style="font-size: 11px; color: #555;">(Supports MP3, MP4, WAV, OGG, WEBM, MKV, FLAC, M4A, AAC, etc.)</span>
+        </div>
+
         <div class="btn-group">
-            <button class="primary" onclick="addMedia()">Add to Playlist</button>
+            <button class="primary" onclick="addMedia()">Add URL to Playlist</button>
+            <div class="file-input-wrapper">
+                <button class="primary">📁 Select Local Files</button>
+                <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.wma,.mp4,.webm,.mkv" multiple onchange="handleFileSelect(event)">
+            </div>
             <button onclick="shufflePlaylist()">🔀 Shuffle</button>
             <button class="danger" onclick="clearPlaylist()">🗑️ Clear All</button>
             <button onclick="toggleShortcutOverlay()">⌨️ Shortcuts</button>
@@ -303,7 +332,7 @@
 
             <audio id="audioPlayer" controls></audio>
             <video id="videoPlayer" controls style="display:none;"></video>
-            <iframe id="youtubePlayer" style="display:none;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe id="youtubePlayer" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
             <canvas id="visualizer" class="visualizer"></canvas>
 
@@ -348,10 +377,6 @@
 </footer>
 
 <script>
-/* =============================================================================
-   GLOBAL ACCOUNT SYSTEM - QUICK ACCESS & LOCAL AUTH (NO API KEYS)
-   ============================================================================= */
-
 let currentUser = null;
 let playlist = [];
 let currentIndex = -1;
@@ -377,263 +402,195 @@ function showToast(message, type = 'success') {
     toast.className = `toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
-    
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease-in forwards';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-/* --- QUICK ACCESS FEATURE --- */
+/* --- AUTH SYSTEM (Unchanged) --- */
 function quickAccessLogin() {
     const username = document.getElementById('quickUsername').value.trim();
-    if (!username || username.length < 2) {
-        showToast('Please enter a username (2+ chars) to start quickly.', 'error');
-        return;
-    }
-
+    if (!username || username.length < 2) { showToast('Please enter a username (2+ chars).', 'error'); return; }
     const sessionId = 'quick_' + username.toLowerCase().replace(/\s+/g, '_');
-    
     const users = loadUsersDB();
-    if (!users[sessionId]) {
-        users[sessionId] = { username: username, password: 'QUICK_ACCESS', avatar: null, favorites: [] };
-        saveUsersDB(users);
-    }
-
-    currentUser = { email: sessionId, username: username, avatar: null };
-    saveSession();
-    updateAuthUI();
-    loadGlobalPlaylist();
-    showSyncStatus('⚡ Quick Access Active - Session saved locally', 'synced');
-    showToast(`Welcome, ${username}! Quick Access enabled.`);
+    if (!users[sessionId]) { users[sessionId] = { username, password: 'QUICK_ACCESS', avatar: null }; saveUsersDB(users); }
+    currentUser = { email: sessionId, username, avatar: null };
+    saveSession(); updateAuthUI(); loadGlobalPlaylist();
+    showSyncStatus('⚡ Quick Access Active', 'synced'); showToast(`Welcome, ${username}!`);
 }
-
-function saveSession() {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-}
-
-function loadSession() {
-    const saved = localStorage.getItem(SESSION_KEY);
-    if (saved) {
-        currentUser = JSON.parse(saved);
-        updateAuthUI();
-        loadGlobalPlaylist();
-    }
-}
-
-/* --- ENCRYPTION & STORAGE UTILS --- */
-function simpleEncrypt(text, key) {
-    let result = '';
-    for (let i = 0; i < text.length; i++) {
-        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-    }
-    return btoa(result);
-}
-
-function simpleDecrypt(encrypted, key) {
-    try {
-        const decoded = atob(encrypted);
-        let result = '';
-        for (let i = 0; i < decoded.length; i++) {
-            result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-        }
-        return result;
-    } catch {
-        return '';
-    }
-}
-
-function loadUsersDB() {
-    try {
-        const encrypted = localStorage.getItem(USERS_KEY);
-        return encrypted ? JSON.parse(simpleDecrypt(encrypted, ENCRYPTION_KEY)) : {};
-    } catch {
-        return {};
-    }
-}
-
-function saveUsersDB(users) {
-    localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPTION_KEY));
-}
-
-/* --- LOCAL AUTH LOGIC --- */
+function saveSession() { localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); }
+function loadSession() { const s = localStorage.getItem(SESSION_KEY); if (s) { currentUser = JSON.parse(s); updateAuthUI(); loadGlobalPlaylist(); } }
+function simpleEncrypt(t, k) { let r=''; for(let i=0;i<t.length;i++) r+=String.fromCharCode(t.charCodeAt(i)^k.charCodeAt(i%k.length)); return btoa(r); }
+function simpleDecrypt(e, k) { try { const d=atob(e); let r=''; for(let i=0;i<d.length;i++) r+=String.fromCharCode(d.charCodeAt(i)^k.charCodeAt(i%k.length)); return r; } catch { return ''; } }
+function loadUsersDB() { try { const e=localStorage.getItem(USERS_KEY); return e ? JSON.parse(simpleDecrypt(e, ENCRYPTION_KEY)) : {}; } catch { return {}; } }
+function saveUsersDB(u) { localStorage.setItem(USERS_KEY, simpleEncrypt(JSON.stringify(u), ENCRYPTION_KEY)); }
 function registerUser() {
-    const email = document.getElementById('regEmail').value.trim().toLowerCase();
-    const password = document.getElementById('regPassword').value;
-    const username = document.getElementById('regUsername').value.trim() || email.split('@')[0];
-
-    if (!email || !password || password.length < 4) {
-        showToast('Email and password (4+ chars) required', 'error');
-        return;
-    }
-
-    const users = loadUsersDB();
-    if (users[email]) {
-        showToast('Email already registered', 'error');
-        return;
-    }
-
-    const hash = btoa(email + ':' + password + ENCRYPTION_KEY);
-    users[email] = { username, password: hash, avatar: null, favorites: [] };
-    saveUsersDB(users);
-
-    showToast('Account created globally! Please login.');
-    showTab('login');
+    const e=document.getElementById('regEmail').value.trim().toLowerCase(), p=document.getElementById('regPassword').value, u=document.getElementById('regUsername').value.trim()||e.split('@')[0];
+    if(!e||!p||p.length<4){ showToast('Email & password (4+ chars) required','error'); return; }
+    const users=loadUsersDB(); if(users[e]){ showToast('Email already registered','error'); return; }
+    users[e]={username:u,password:btoa(e+':'+p+ENCRYPTION_KEY),avatar:null}; saveUsersDB(users); showToast('Account created! Please login.'); showTab('login');
 }
-
 function loginUser() {
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
-
-    if (!email || !password) {
-        showToast('Enter email and password', 'error');
-        return;
-    }
-
-    const users = loadUsersDB();
-    const user = users[email];
-    
-    if (!user || user.password === 'QUICK_ACCESS') {
-        showToast('Account not found or uses Quick Access. Please register first.', 'error');
-        return;
-    }
-
-    if (user.password !== btoa(email + ':' + password + ENCRYPTION_KEY)) {
-        showToast('Invalid email or password', 'error');
-        return;
-    }
-
-    currentUser = { email, username: user.username, avatar: user.avatar };
-    saveSession();
-    updateAuthUI();
-    loadGlobalPlaylist();
-    showSyncStatus('✅ Logged in - Playlist synced globally', 'synced');
-    showToast(`Welcome back, ${user.username}!`);
+    const e=document.getElementById('loginEmail').value.trim().toLowerCase(), p=document.getElementById('loginPassword').value;
+    if(!e||!p){ showToast('Enter email and password','error'); return; }
+    const users=loadUsersDB(), user=users[e]; if(!user||user.password==='QUICK_ACCESS'){ showToast('Invalid account','error'); return; }
+    if(user.password!==btoa(e+':'+p+ENCRYPTION_KEY)){ showToast('Invalid credentials','error'); return; }
+    currentUser={email:e,username:user.username,avatar:user.avatar}; saveSession(); updateAuthUI(); loadGlobalPlaylist(); showSyncStatus('✅ Logged in','synced'); showToast(`Welcome, ${user.username}!`);
 }
-
 function resetPassword() {
-    const email = document.getElementById('resetEmail').value.trim().toLowerCase();
-    const newPassword = document.getElementById('newPassword').value;
-
-    if (!email || !newPassword || newPassword.length < 4) {
-        showToast('Enter valid email and new password', 'error');
-        return;
-    }
-
-    const users = loadUsersDB();
-    if (!users[email]) {
-        showToast('This email is not registered.', 'error');
-        return;
-    }
-
-    users[email].password = btoa(email + ':' + newPassword + ENCRYPTION_KEY);
-    saveUsersDB(users);
-
-    showToast('Password reset successfully for ' + email);
-    showTab('login');
+    const e=document.getElementById('resetEmail').value.trim().toLowerCase(), p=document.getElementById('newPassword').value;
+    if(!e||!p||p.length<4){ showToast('Valid email & new password required','error'); return; }
+    const users=loadUsersDB(); if(!users[e]){ showToast('Email not registered','error'); return; }
+    users[e].password=btoa(e+':'+p+ENCRYPTION_KEY); saveUsersDB(users); showToast('Password reset!'); showTab('login');
 }
-
-function logoutUser() {
-    localStorage.removeItem(SESSION_KEY);
-    currentUser = null;
-    updateAuthUI();
-    loadGuestPlaylist();
-    showToast('Logged out successfully.', 'warning');
-}
-
-function showTab(tab) {
-    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.login-form, .register-form, .reset-form').forEach(f => f.classList.remove('active'));
-    
-    const index = tab === 'login' ? 0 : tab === 'register' ? 1 : 2;
-    document.querySelectorAll('.auth-tab')[index].classList.add('active');
-    document.getElementById(tab + 'Form').classList.add('active');
-}
-
+function logoutUser() { localStorage.removeItem(SESSION_KEY); currentUser=null; updateAuthUI(); loadGuestPlaylist(); showToast('Logged out.','warning'); }
+function showTab(t) { document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.login-form,.register-form,.reset-form').forEach(f=>f.classList.remove('active')); const i=t==='login'?0:t==='register'?1:2; document.querySelectorAll('.auth-tab')[i].classList.add('active'); document.getElementById(t+'Form').classList.add('active'); }
 function updateAuthUI() {
-    if (currentUser) {
-        document.getElementById('userName').textContent = currentUser.username;
-        document.getElementById('userEmail').textContent = currentUser.email.includes('@') ? currentUser.email : 'Quick Access Session';
-        
-        const avatarEl = document.getElementById('userAvatar');
-        avatarEl.textContent = currentUser.username[0].toUpperCase();
-        avatarEl.style.backgroundImage = 'none';
-        
-        if(currentUser.avatar) {
-            avatarEl.style.backgroundImage = `url(${currentUser.avatar})`;
-            avatarEl.textContent = '';
-        }
-        
-        document.getElementById('userInfo').style.display = 'block';
-        document.querySelector('.auth-tabs').style.display = 'none';
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('registerForm').style.display = 'none';
-        document.getElementById('resetForm').style.display = 'none';
-        document.getElementById('quickAccessWrapper').style.display = 'none';
+    if(currentUser) {
+        document.getElementById('userName').textContent=currentUser.username; document.getElementById('userEmail').textContent=currentUser.email.includes('@')?currentUser.email:'Quick Access Session';
+        const a=document.getElementById('userAvatar'); a.textContent=currentUser.username[0].toUpperCase(); a.style.backgroundImage='none'; if(currentUser.avatar){ a.style.backgroundImage=`url(${currentUser.avatar})`; a.textContent=''; }
+        document.getElementById('userInfo').style.display='block'; document.querySelector('.auth-tabs').style.display='none'; document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='none'; document.getElementById('resetForm').style.display='none'; document.getElementById('quickAccessWrapper').style.display='none';
     } else {
-        document.getElementById('userInfo').style.display = 'none';
-        document.querySelector('.auth-tabs').style.display = 'flex';
-        document.getElementById('loginForm').style.display = 'block'; 
-        document.getElementById('loginForm').classList.add('active');
-        document.getElementById('quickAccessWrapper').style.display = 'block';
+        document.getElementById('userInfo').style.display='none'; document.querySelector('.auth-tabs').style.display='flex'; document.getElementById('loginForm').style.display='block'; document.getElementById('loginForm').classList.add('active'); document.getElementById('quickAccessWrapper').style.display='block';
+    }
+}
+function getGlobalPlaylistKey() { return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist'; }
+function savePlaylist() { localStorage.setItem(getGlobalPlaylistKey(), JSON.stringify(playlist)); if(currentUser) showSyncStatus('💾 Saved globally','synced'); }
+function loadGlobalPlaylist() { const s=localStorage.getItem(getGlobalPlaylistKey()); playlist=s?JSON.parse(s):[]; renderPlaylist(); }
+function loadGuestPlaylist() { const s=localStorage.getItem('guest_playlist'); playlist=s?JSON.parse(s):[]; renderPlaylist(); }
+function showSyncStatus(m, t) { const s=document.getElementById('syncStatus'); s.textContent=m; s.className=`sync-status ${t}`; s.classList.add('show'); setTimeout(()=>s.classList.remove('show'),3000); }
+
+
+/* =============================================================================
+   OEMBED UNIVERSAL PLATFORM PARSER (SPOTIFY, SOUNDCLOUD, ETC)
+   ============================================================================= */
+async function getOEmbedData(platform, url) {
+    let oEmbedUrl = '';
+    if (platform === 'spotify') {
+        oEmbedUrl = `https://embed.spotify.com/oembed?url=${encodeURIComponent(url)}`;
+    } else if (platform === 'soundcloud') {
+        oEmbedUrl = `https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+    } else if (platform === 'mixcloud') {
+        oEmbedUrl = `https://www.mixcloud.com/oembed/?url=${encodeURIComponent(url)}&format=json`;
+    } else if (platform === 'deezer') {
+        // Deezer oEmbed requires a specific format
+        oEmbedUrl = `https://api.deezer.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+    } else {
+        return null; // Platform not supported via oEmbed
+    }
+
+    try {
+        const response = await fetch(oEmbedUrl);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.html; // Returns the <iframe> code
+    } catch (error) {
+        console.error("oEmbed fetch failed:", error);
+        return null;
     }
 }
 
-/* --- PLAYLIST SYNC LOGIC --- */
-function getGlobalPlaylistKey() {
-    return currentUser ? `playlist_global_${currentUser.email}` : 'guest_playlist';
+function extractPlatformFromUrl(url) {
+    if (url.includes("open.spotify.com") || url.includes("spotify.com")) return 'spotify';
+    if (url.includes("soundcloud.com")) return 'soundcloud';
+    if (url.includes("mixcloud.com")) return 'mixcloud';
+    if (url.includes("deezer.com")) return 'deezer';
+    if (url.includes("music.apple.com")) return 'apple_music';
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return 'youtube';
+    return null;
 }
 
-function savePlaylist() {
-    const key = getGlobalPlaylistKey();
-    localStorage.setItem(key, JSON.stringify(playlist));
-    if (currentUser) {
-        showSyncStatus('💾 Saved globally to ' + currentUser.username, 'synced');
-    }
-}
-
-function loadGlobalPlaylist() {
-    const key = getGlobalPlaylistKey();
-    const saved = localStorage.getItem(key);
-    playlist = saved ? JSON.parse(saved) : [];
-    renderPlaylist();
-}
-
-function loadGuestPlaylist() {
-    const saved = localStorage.getItem('guest_playlist');
-    playlist = saved ? JSON.parse(saved) : [];
-    renderPlaylist();
-}
-
-function showSyncStatus(message, type) {
-    const status = document.getElementById('syncStatus');
-    status.textContent = message;
-    status.className = `sync-status ${type}`;
-    status.classList.add('show');
-    setTimeout(() => status.classList.remove('show'), 3000);
-}
 
 /* --- PLAYER FUNCTIONS --- */
 function getMediaType(url) {
-    if (url.includes("youtube.com") || url.includes("youtu.be")) return 'youtube';
-    if (url.match(/\.(mp4|webm|ogg|mkv)$/i)) return 'video';
+    if (!url) return 'unknown';
+    if (extractPlatformFromUrl(url) === 'youtube') return 'youtube';
+    if (extractPlatformFromUrl(url)) return 'iframe-platform'; // Spotify, SoundCloud, etc.
+    if (url.match(/\.(mp4|webm|ogg|mkv|avi|mov)$/i)) return 'video';
+    if (url.startsWith('blob:')) return 'local-file';
+    if (url.startsWith('<iframe')) return 'iframe-platform'; // Raw embed code
     return 'audio';
 }
 
-function addMedia(url) {
+async function addMedia(url) {
     let input = url || document.getElementById("mediaUrl").value.trim();
     if (!input) return;
 
-    if (input.includes("spotify.com") && input.includes("preview")) {
-        input = input.replace("open.spotify.com/track", "p.scdn.co/mp3-preview");
+    let trackObj = { url: input, fav: false, name: '', platform: '' };
+
+    // Check if it's a platform link that needs conversion
+    const platform = extractPlatformFromUrl(input);
+    
+    if (platform && platform !== 'youtube') {
+        showToast(`Fetching embed for ${platform}...`, 'warning');
+        const embedHtml = await getOEmbedData(platform, input);
+        
+        if (embedHtml) {
+            // Extract src from the returned <iframe>
+            const srcMatch = embedHtml.match(/src="([^"]+)"/);
+            if (srcMatch) {
+                let src = srcMatch[1];
+                // Ensure HTTPS and add autoplay params
+                if (src.startsWith('//')) src = 'https:' + src;
+                
+                // Specific platform adjustments
+                if (platform === 'spotify') src += '&utm_source=generator&theme=0';
+                if (platform === 'soundcloud') src += '&auto_play=true';
+                
+                trackObj.url = src;
+                trackObj.platform = platform;
+            } else {
+                trackObj.url = input; // Fallback
+            }
+        } else {
+            showToast(`Failed to load ${platform} embed. Try another link.`, 'error');
+            trackObj.url = input; // Fallback
+        }
+    } else if (platform === 'youtube') {
+        let videoId = input.split("v=")[1]?.split("&")[0] || input.split("youtu.be/")[1]?.split("?")[0];
+        trackObj.url = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+        trackObj.platform = 'youtube';
     }
 
-    playlist.push({ url: input, fav: false });
+    // Extract Name from URL
+    try {
+        if (platform === 'spotify') trackObj.name = `Spotify Track`;
+        else if (platform === 'soundcloud') trackObj.name = `SoundCloud Track`;
+        else if (platform === 'youtube') trackObj.name = `YouTube Video`;
+        else trackObj.name = decodeURIComponent(input.split('/').pop().split('?')[0].split('#')[0]) || 'Local File';
+    } catch { trackObj.name = 'Track'; }
+
+    playlist.push(trackObj);
     renderPlaylist();
     document.getElementById("mediaUrl").value = "";
     savePlaylist();
-    showToast('Track added to playlist!');
+    showToast(`${platform ? platform.charAt(0).toUpperCase() + platform.slice(1) : 'Track'} added!`);
 }
+
+function handleFileSelect(event) {
+    const files = event.target.files;
+    if (!files.length) return;
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('audio/') || file.type.startsWith('video/') || file.name.match(/\.(mp3|wav|ogg|flac|m4a|aac|wma|opus|mp4|webm|mkv|avi|mov)$/i)) {
+            playlist.push({ url: URL.createObjectURL(file), fav: false, name: file.name, platform: 'local' });
+            showToast(`Added: ${file.name}`);
+        } else {
+            showToast(`Unsupported: ${file.name}`, 'error');
+        }
+    }
+    renderPlaylist(); savePlaylist(); event.target.value = '';
+}
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) handleFileSelect({ target: { files: e.dataTransfer.files } });
+    else { const url = e.dataTransfer.getData("text"); if (url) addMedia(url); }
+});
 
 function renderPlaylist() {
     playlistDiv.innerHTML = "";
@@ -641,21 +598,24 @@ function renderPlaylist() {
     
     playlist.forEach((item, i) => {
         const type = getMediaType(item.url);
-        
-        // Filter Logic
-        if (currentFilter === 'audio' && type !== 'audio') return;
+        if (currentFilter === 'audio' && (type !== 'audio' && type !== 'iframe-platform' && type !== 'local-file')) return;
         if (currentFilter === 'video' && (type !== 'video' && type !== 'youtube')) return;
         if (currentFilter === 'fav' && !item.fav) return;
         
-        // Search Logic
-        const trackName = getTrackName(item.url).toLowerCase();
+        const trackName = (item.name || getTrackName(item.url)).toLowerCase();
         if (searchTerm && !trackName.includes(searchTerm)) return;
 
         const div = document.createElement("div");
         div.className = "track-item " + (i === currentIndex ? "current-track" : "");
         
+        let prefix = '';
+        if (item.platform === 'spotify') prefix = '🟢 ';
+        else if (item.platform === 'soundcloud') prefix = '🟠 ';
+        else if (item.platform === 'youtube') prefix = '🔴 ';
+        else if (item.platform === 'local') prefix = '📁 ';
+        
         div.innerHTML = `
-            <span>${i + 1}. ${trackName}</span>
+            <span>${i + 1}. ${prefix}${item.name || getTrackName(item.url)}</span>
             <div class="track-actions">
                 <button class="track-btn ${item.fav ? 'fav-active' : ''}" onclick="event.stopPropagation(); toggleFav(${i})">⭐</button>
                 <button class="track-btn" onclick="event.stopPropagation(); removeSpecificTrack(${i})">❌</button>
@@ -664,248 +624,104 @@ function renderPlaylist() {
         div.onclick = () => playFromIndex(i);
         playlistDiv.appendChild(div);
     });
-    
     updateNowPlayingInfo();
 }
 
 function getTrackName(url) {
-    return decodeURIComponent(url.split('/').pop().split('?')[0].split('#')[0] || 
-           url.split('v=')[1]?.split('&')[0]?.slice(0,30) || 
-           'Unknown Track');
+    if (url.startsWith('blob:')) return 'Local File';
+    return decodeURIComponent(url.split('/').pop().split('?')[0].split('#')[0] || 'Unknown Track');
 }
 
 function playFromIndex(index) {
     if (index < 0 || index >= playlist.length) return;
     currentIndex = index;
-    const url = playlist[index].url;
+    const item = playlist[index];
+    const url = item.url;
+    const type = getMediaType(url);
 
     audioPlayer.pause(); audioPlayer.style.display = "none";
     videoPlayer.pause(); videoPlayer.style.display = "none";
     youtubePlayer.style.display = "none"; youtubePlayer.src = "";
+    youtubePlayer.classList.remove('youtube-iframe');
 
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    if (type === 'youtube') {
         youtubePlayer.style.display = "block";
-        let videoId = url.split("v=")[1]?.split("&")[0] || url.split("youtu.be/")[1]?.split("?")[0];
-        youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-    } else if (url.match(/\.(mp4|webm|ogg|mkv)$/i)) {
+        youtubePlayer.classList.add('youtube-iframe');
+        youtubePlayer.src = url;
+    } else if (type === 'iframe-platform') {
+        youtubePlayer.style.display = "block";
+        youtubePlayer.src = url;
+    } else if (type === 'video') {
         videoPlayer.style.display = "block";
         videoPlayer.src = url;
         videoPlayer.play().catch(() => {});
     } else {
         audioPlayer.style.display = "block";
         audioPlayer.src = url;
-        audioPlayer.play().catch(() => {});
+        audioPlayer.play().catch(() => {
+            if (url.startsWith('blob:')) {
+                audioPlayer.style.display = 'none'; videoPlayer.style.display = "block"; videoPlayer.src = url; videoPlayer.play().catch(() => {});
+            }
+        });
         initVisualizer();
     }
-    renderPlaylist();
-    savePlaylist();
+    renderPlaylist(); savePlaylist();
 }
 
 function updateNowPlayingInfo() {
-    const titleEl = document.getElementById('nowPlayingTitle');
-    const typeEl = document.getElementById('nowPlayingType');
-    const favBtn = document.getElementById('favBtn');
-    
-    if (currentIndex !== -1 && playlist[currentIndex]) {
-        titleEl.textContent = getTrackName(playlist[currentIndex].url);
-        typeEl.textContent = getMediaType(playlist[currentIndex].url).toUpperCase();
-        favBtn.style.color = playlist[currentIndex].fav ? '#ff4f4f' : '#aaa';
-    } else {
-        titleEl.textContent = 'No track selected';
-        typeEl.textContent = '';
-        favBtn.style.color = '#aaa';
-    }
+    const t=document.getElementById('nowPlayingTitle'), ty=document.getElementById('nowPlayingType'), f=document.getElementById('favBtn');
+    if(currentIndex!==-1&&playlist[currentIndex]) {
+        t.textContent=playlist[currentIndex].name||getTrackName(playlist[currentIndex].url);
+        ty.textContent=playlist[currentIndex].platform ? playlist[currentIndex].platform.toUpperCase() : getMediaType(playlist[currentIndex].url).toUpperCase();
+        f.style.color=playlist[currentIndex].fav?'#ff4f4f':'#aaa';
+    } else { t.textContent='No track selected'; ty.textContent=''; f.style.color='#aaa'; }
 }
 
-function playMedia() { if (currentIndex === -1 && playlist.length > 0) playFromIndex(0); else { audioPlayer?.play(); videoPlayer?.play(); } }
+function playMedia() { if(currentIndex===-1&&playlist.length>0)playFromIndex(0);else{audioPlayer?.play();videoPlayer?.play();} }
 function pauseMedia() { audioPlayer?.pause(); videoPlayer?.pause(); }
-function nextTrack() { if (playlist.length === 0) return; let next = repeat ? currentIndex : (currentIndex + 1) % playlist.length; playFromIndex(next); }
-function prevTrack() { if (playlist.length === 0) return; let prev = (currentIndex - 1 + playlist.length) % playlist.length; playFromIndex(prev); }
-function toggleRepeat() { repeat = !repeat; document.getElementById("repeatBtn").innerHTML = `🔁 ${repeat ? 'ON' : 'OFF'}`; showToast(`Repeat mode ${repeat ? 'enabled' : 'disabled'}`); }
-function setVolume(v) { audioPlayer.volume = v; videoPlayer.volume = v; }
-function clearPlaylist() { playlist = []; currentIndex = -1; renderPlaylist(); savePlaylist(); showToast('Playlist cleared', 'warning'); }
+function nextTrack() { if(playlist.length===0)return; playFromIndex(repeat?currentIndex:(currentIndex+1)%playlist.length); }
+function prevTrack() { if(playlist.length===0)return; playFromIndex((currentIndex-1+playlist.length)%playlist.length); }
+function toggleRepeat() { repeat=!repeat; document.getElementById("repeatBtn").innerHTML=`🔁 ${repeat?'ON':'OFF'}`; showToast(`Repeat ${repeat?'on':'off'}`); }
+function setVolume(v) { audioPlayer.volume=v; videoPlayer.volume=v; }
+function clearPlaylist() { playlist=[]; currentIndex=-1; renderPlaylist(); savePlaylist(); showToast('Playlist cleared','warning'); }
 function removeMedia() { removeSpecificTrack(currentIndex); }
 
 function removeSpecificTrack(index) {
-    if (index > -1) {
-        const name = getTrackName(playlist[index].url);
-        playlist.splice(index, 1);
-        if (index === currentIndex) {
-            currentIndex = -1; // Reset current if removed
-        } else if (index < currentIndex) {
-            currentIndex--; // Adjust index if an earlier track is removed
-        }
-        renderPlaylist();
-        savePlaylist();
-        showToast(`Removed: ${name}`, 'error');
+    if(index>-1) {
+        const n=playlist[index].name||getTrackName(playlist[index].url);
+        if(playlist[index].url.startsWith('blob:'))URL.revokeObjectURL(playlist[index].url);
+        playlist.splice(index,1);
+        if(index===currentIndex)currentIndex=-1;else if(index<currentIndex)currentIndex--;
+        renderPlaylist(); savePlaylist(); showToast(`Removed: ${n}`,'error');
     }
 }
 
-function shufflePlaylist() { 
-    for (let i = playlist.length - 1; i > 0; i--) { 
-        const j = Math.floor(Math.random() * (i + 1)); 
-        [playlist[i], playlist[j]] = [playlist[j], playlist[i]]; 
-    }
-    currentIndex = -1; 
-    renderPlaylist(); 
-    savePlaylist(); 
-    showToast('Playlist shuffled 🔀');
-}
+function shufflePlaylist() { for(let i=playlist.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[playlist[i],playlist[j]]=[playlist[j],playlist[i]];} currentIndex=-1; renderPlaylist(); savePlaylist(); showToast('Shuffled 🔀'); }
+function toggleFav(i) { playlist[i].fav=!playlist[i].fav; renderPlaylist(); savePlaylist(); showToast(playlist[i].fav?'Favorited ⭐':'Unfavorited'); }
+function toggleCurrentFav() { if(currentIndex!==-1)toggleFav(currentIndex); }
+function filterPlaylist(t) { currentFilter=t; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); renderPlaylist(); }
 
-/* --- FAVORITES SYSTEM --- */
-function toggleFav(index) {
-    playlist[index].fav = !playlist[index].fav;
-    renderPlaylist();
-    savePlaylist();
-    showToast(playlist[index].fav ? 'Added to Favorites ⭐' : 'Removed from Favorites');
-}
-
-function toggleCurrentFav() {
-    if (currentIndex !== -1) {
-        toggleFav(currentIndex);
-    }
-}
-
-/* --- PLAYLIST FILTERS --- */
-function filterPlaylist(type) {
-    currentFilter = type;
-    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    renderPlaylist();
-}
-
-/* --- VISUALIZER UPGRADE --- */
 function initVisualizer() {
-    if (!audioCtx) {
-        try {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioCtx.createAnalyser();
-            source = audioCtx.createMediaElementSource(audioPlayer);
-            source.connect(analyser);
-            analyser.connect(audioCtx.destination);
-        } catch(e) { console.error("AudioContext error", e); }
-    }
-    if (analyser) {
-        analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        
-        function draw() {
-            requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let x = 0;
-            
-            for (let i = 0; i < bufferLength; i++) {
-                let barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
-                
-                // Gradient color based on frequency
-                const hue = (i / bufferLength) * 120 + 120; // Range from Green to Cyan
-                ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.8)`;
-                
-                // Drawing rounded caps for bars
-                const radius = Math.min(barWidth/2, barHeight/2, 4);
-                ctx.beginPath();
-                ctx.moveTo(x + radius, canvas.height - barHeight);
-                ctx.lineTo(x + barWidth - radius, canvas.height - barHeight);
-                ctx.quadraticCurveTo(x + barWidth, canvas.height - barHeight, x + barWidth, canvas.height - barHeight + radius);
-                ctx.lineTo(x + barWidth, canvas.height);
-                ctx.lineTo(x, canvas.height);
-                ctx.lineTo(x, canvas.height - barHeight + radius);
-                ctx.quadraticCurveTo(x, canvas.height - barHeight, x + radius, canvas.height - barHeight);
-                ctx.closePath();
-                ctx.fill();
-                
-                x += barWidth + 2;
-            }
-        }
-        draw();
-    }
+    if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();source=audioCtx.createMediaElementSource(audioPlayer);source.connect(analyser);analyser.connect(audioCtx.destination);}catch(e){}}
+    if(analyser){analyser.fftSize=256;const bL=analyser.frequencyBinCount,dA=new Uint8Array(bL);function draw(){requestAnimationFrame(draw);analyser.getByteFrequencyData(dA);ctx.clearRect(0,0,canvas.width,canvas.height);const bW=(canvas.width/bL)*2.5;let x=0;for(let i=0;i<bL;i++){let bH=(dA[i]/255)*canvas.height*0.9;ctx.fillStyle=`hsla(${(i/bL)*120+120},80%,60%,0.8)`;const r=Math.min(bW/2,bH/2,4);ctx.beginPath();ctx.moveTo(x+r,canvas.height-bH);ctx.lineTo(x+bW-r,canvas.height-bH);ctx.quadraticCurveTo(x+bW,canvas.height-bH,x+bW,canvas.height-bH+r);ctx.lineTo(x+bW,canvas.height);ctx.lineTo(x,canvas.height);ctx.lineTo(x,canvas.height-bH+r);ctx.quadraticCurveTo(x,canvas.height-bH,x+r,canvas.height-bH);ctx.closePath();ctx.fill();x+=bW+2;}} draw();}
 }
 
-/* --- KEYBOARD SHORTCUTS --- */
-function toggleShortcutOverlay() {
-    document.getElementById('shortcutOverlay').classList.toggle('show');
-}
-
-window.addEventListener('keydown', (e) => {
-    // Ignore if user is typing in an input field
-    if (e.target.tagName === 'INPUT') return;
-
-    switch(e.key) {
-        case ' ':
-            e.preventDefault();
-            if (audioPlayer.paused || videoPlayer.paused) playMedia();
-            else pauseMedia();
-            break;
-        case 'ArrowRight':
-            e.preventDefault();
-            nextTrack();
-            break;
-        case 'ArrowLeft':
-            e.preventDefault();
-            prevTrack();
-            break;
-        case 'ArrowUp':
-            e.preventDefault();
-            setVolume(Math.min(1, audioPlayer.volume + 0.05));
-            document.querySelector('input[type="range"]').value = audioPlayer.volume;
-            break;
-        case 'ArrowDown':
-            e.preventDefault();
-            setVolume(Math.max(0, audioPlayer.volume - 0.05));
-            document.querySelector('input[type="range"]').value = audioPlayer.volume;
-            break;
-        case 'r':
-        case 'R':
-            toggleRepeat();
-            break;
-        case 'f':
-        case 'F':
-            toggleCurrentFav();
-            break;
-        case 'Escape':
-            const overlay = document.getElementById('shortcutOverlay');
-            if (overlay.classList.contains('show')) toggleShortcutOverlay();
-            break;
-    }
+function toggleShortcutOverlay() { document.getElementById('shortcutOverlay').classList.toggle('show'); }
+window.addEventListener('keydown', e => {
+    if(e.target.tagName==='INPUT')return;
+    switch(e.key){case ' ':e.preventDefault();(audioPlayer.paused&&videoPlayer.paused)?playMedia():pauseMedia();break;case 'ArrowRight':e.preventDefault();nextTrack();break;case 'ArrowLeft':e.preventDefault();prevTrack();break;case 'ArrowUp':e.preventDefault();setVolume(Math.min(1,audioPlayer.volume+0.05));document.querySelector('input[type="range"]').value=audioPlayer.volume;break;case 'ArrowDown':e.preventDefault();setVolume(Math.max(0,audioPlayer.volume-0.05));document.querySelector('input[type="range"]').value=audioPlayer.volume;break;case 'r':case 'R':toggleRepeat();break;case 'f':case 'F':toggleCurrentFav();break;case 'Escape':if(document.getElementById('shortcutOverlay').classList.contains('show'))toggleShortcutOverlay();break;}
 });
 
-/* Drag & Drop */
 document.addEventListener("dragover", e => e.preventDefault());
-document.addEventListener("drop", e => {
-    e.preventDefault();
-    const url = e.dataTransfer.getData("text");
-    if (url) addMedia(url);
-});
-
-/* Auto-play next track on end */
+document.addEventListener("drop", e => { e.preventDefault(); const u=e.dataTransfer.getData("text"); if(u&&!e.dataTransfer.files.length)addMedia(u); });
 audioPlayer.addEventListener('ended', nextTrack);
 videoPlayer.addEventListener('ended', nextTrack);
 
-/* --- PWA INSTALL --- */
 let deferredPrompt;
-document.getElementById('installBtn').onclick = async () => {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
-    }
-};
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').style.display = 'block'; });
+document.getElementById('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')document.getElementById('installBtn').style.display='none';}};
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt=e; document.getElementById('installBtn').style.display='block'; });
 
-/* --- INIT --- */
-window.addEventListener('load', () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    
-    loadSession();
-    if (!currentUser) {
-        loadGuestPlaylist();
-    }
-});
+window.addEventListener('load', () => { canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; loadSession(); if(!currentUser)loadGuestPlaylist(); });
 </script>
 </body>
 </html>
